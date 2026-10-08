@@ -31,4 +31,13 @@
 
 ## Resultado
 
-Implementación validada localmente. Queda pendiente configurar el `REPORT_ID` de Carbone para validar la generación real del comprobante descargable.
+Implementación validada localmente y probada en producción por el usuario. La migración de producción se aplicó correctamente y la funcionalidad fue verificada como OK.
+
+Queda pendiente configurar el `REPORT_ID` de Carbone para validar la generación real del comprobante descargable. La reafiliación se mantiene fuera del alcance de esta spec.
+
+## Evidencia de producción
+
+- [x] Migración Prisma aplicada correctamente en producción.
+- [x] Funcionalidad de desafiliación probada en producción.
+- [x] Usuario confirmó resultado funcional OK.
+- [x] Reafiliación confirmada fuera del alcance de `002-desafiliar-socio`.

@@ -103,3 +103,11 @@ Contexto: La fecha de salida puede necesitar control manual.
 Decisión: Permitir seleccionar fecha de salida con valor por defecto `todayCR()`.
 
 Consecuencia: La pantalla debe incluir input de fecha `YYYY-MM-DD` y validar el estándar de fechas de negocio.
+
+## 2026-10-08 - Reafiliación fuera de alcance
+
+Contexto: Después de implementar y probar desafiliación, se consultó si quedaba pendiente un flujo de reafiliación.
+
+Decisión: Mantener la reafiliación fuera del alcance de esta spec.
+
+Consecuencia: Cualquier proceso para reafiliar socios desafiliados debe definirse en una spec separada si se solicita en el futuro.
