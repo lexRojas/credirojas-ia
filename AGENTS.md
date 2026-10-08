@@ -16,6 +16,8 @@
 - Antes de hacer push a `main`, `master` o `prod`, valida al menos `npm run lint`, `npx tsc --noEmit` y `npm run build`.
 - No renombres ni elimines `DATABASE_URL_PROD` sin actualizar el workflow y los secretos de GitHub.
 - El workflow no despliega Vercel explícitamente; si Vercel despliega, depende de la integración GitHub↔Vercel.
+- Para publicar cambios usa la skill `github-sync` o el comando `/git/publish`; ambos deben pedir confirmación antes de `git add`, `git commit` y `git push`.
+- `opencode.jsonc` permite inspección Git básica sin preguntar, pero deja `git add`, `git commit` y `git push` en modo confirmación.
 
 ## Estructura de la app
 - Es una app Next.js App Router bajo `src/app`; `@/*` apunta a `src/*`.
