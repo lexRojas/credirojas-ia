@@ -6,6 +6,7 @@ import { render } from "@react-email/render";
 import SolicitudPrestamoVotacion from "@/components/staticPages/SolicitudPrestamoVotacion";
 import { generateTokenUrlSafe, hashToken } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { EstadoSocio } from "@prisma/client";
 
 // Crear una instancia de PrismaClient
 
@@ -41,7 +42,7 @@ export const saveSolicitud = async (formData: formTypeSolicitud) => {
 
     const socios = await prisma.socio.findMany({
       where: {
-        fechaSalida: "",
+        estadoSocio: EstadoSocio.ACTIVO,
       },
     });
 

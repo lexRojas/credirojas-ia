@@ -1,6 +1,6 @@
 // types.ts
 
-import { prestamo_modalidad, pagos_tipoCuota } from "@prisma/client";
+import { EstadoSocio, prestamo_modalidad, pagos_tipoCuota } from "@prisma/client";
 
 // Modelos
 export interface Accion {
@@ -68,6 +68,7 @@ export interface Socio {
   profesion?: string | null;
   password: string;
   rolId?: number | null;
+  estadoSocio?: EstadoSocio;
   username: string;
   accion?: Accion[];
   pagos?: Pagos[];

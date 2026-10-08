@@ -1,0 +1,34 @@
+# Tasks: Desafiliar Socio
+
+- [x] Aprobar spec y alcance.
+- [x] Resolver preguntas abiertas de reglas financieras y permisos.
+- [ ] Resolver pregunta abierta restante sobre plantilla de comprobante Carbone.
+- [x] Revisar y aprobar plan técnico.
+- [x] Definir modelo de datos final con estado del socio, motivo de salida, incobrables, beneficiarios y tipo `PAGO INCOBRABLE`.
+- [x] Crear migración Prisma para desafiliaciones, beneficiarios e incobrables.
+- [x] Agregar campo explícito de estado del socio.
+- [x] Agregar enum/tipo para `PAGO INCOBRABLE`.
+- [x] Agregar opción de menú `Socios -> Desafiliar`.
+- [x] Crear pantalla de desafiliación.
+- [x] Implementar cálculo de créditos pendientes, ahorros, dividendos y saldo disponible.
+- [x] Bloquear desafiliación si `setDividendosPeriodo` no puede calcular dividendos del periodo.
+- [x] Implementar captura de motivo de salida.
+- [x] Implementar fecha de salida editable con valor por defecto `todayCR()`.
+- [x] Implementar justificación obligatoria para `Expulsion`.
+- [x] Implementar captura y validación de beneficiarios para fallecimiento.
+- [x] Implementar acción transaccional de desafiliación.
+- [x] Ordenar préstamos de menor saldo a mayor saldo antes de aplicar pagos.
+- [x] Registrar pagos de préstamos cubiertos.
+- [x] Registrar abonos parciales cancelando primero intereses y luego amortizando capital cuando el monto disponible no alcance.
+- [x] Registrar `PAGO INCOBRABLE` e incobrables para saldos no cubiertos.
+- [x] Inactivar socio y bloquear login.
+- [x] Validar autorización para usuarios con `rolId = 2`.
+- [x] Excluir socio desafiliado de listados operativos y reportes activos.
+- [ ] Generar comprobante o reporte descargable de desafiliación.
+- [ ] Definir/configurar `REPORT_ID` de Carbone para comprobante de desafiliación.
+- [x] Bloquear generación de comprobante si `REPORT_ID` no está configurado.
+- [x] Ajustar conciliación con `Pagos por desafiliación`.
+- [x] Ajustar conciliación con `Pagos incobrables`.
+- [x] Ejecutar `npm run lint`.
+- [x] Ejecutar `npx tsc --noEmit`.
+- [x] Ejecutar `npm run build`.

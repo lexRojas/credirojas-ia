@@ -4,6 +4,7 @@ import {
   CalcularProximaCuotaInput,
 } from "@/lib/calculos";
 import { prisma } from "@/lib/prisma";
+import { EstadoSocio } from "@prisma/client";
 import { NextRequest, NextResponse } from "next/server";
 import { sendMailRecordatorioPago } from "./actions";
 
@@ -54,6 +55,7 @@ export async function POST(req: NextRequest) {
         },
       },
       where: {
+        estadoSocio: EstadoSocio.ACTIVO,
         prestamos: {
           some: {},
         },

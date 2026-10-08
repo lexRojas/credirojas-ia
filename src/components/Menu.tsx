@@ -93,7 +93,7 @@ const Sidebar = ({
             subItems: [
                 { name: "Nuevo", href: "/home/socios/signing" },
                 { name: "Modificar", href: "/home/socios/browse" },
-                { name: "Desafiliar", href: "/home/construccion" },
+                { name: "Desafiliar", href: "/home/socios/desafiliar" },
                 { name: "Invitar nuevo socio", href: "/home/socios/invitar" },
                 { name: "Ver mi Dashboard", href: "/home/socios/dashboard" },
             ]

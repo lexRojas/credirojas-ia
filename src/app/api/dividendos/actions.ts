@@ -3,6 +3,7 @@
 import { prisma } from "@/lib/prisma";
 import { todayCR } from "@/lib/date";
 import { getVariableValue } from "../variables/actions";
+import { EstadoSocio } from "@prisma/client";
 
 const calcularInteresesesFuturos = (
   saldo: number,
@@ -62,7 +63,7 @@ export const getProyeccionDividendos = async (
         periodo: periodo,
       },
       socio: {
-        fechaSalida: "",
+        estadoSocio: EstadoSocio.ACTIVO,
       },
     },
     select: {
@@ -86,7 +87,7 @@ export const getProyeccionDividendos = async (
         periodo: periodo_anterior,
       },
       socio: {
-        fechaSalida: "",
+        estadoSocio: EstadoSocio.ACTIVO,
       },
     },
     select: {
@@ -109,7 +110,7 @@ export const getProyeccionDividendos = async (
         periodo: periodo,
       },
       socio: {
-        fechaSalida: "",
+        estadoSocio: EstadoSocio.ACTIVO,
       },
     },
     select: {
@@ -137,7 +138,7 @@ export const getProyeccionDividendos = async (
         periodo: periodo_anterior,
       },
       socio: {
-        fechaSalida: "",
+        estadoSocio: EstadoSocio.ACTIVO,
       },
     },
     select: {
@@ -157,7 +158,7 @@ export const getProyeccionDividendos = async (
         periodo: periodo,
       },
       socio: {
-        fechaSalida: "",
+        estadoSocio: EstadoSocio.ACTIVO,
       },
     },
     select: {
@@ -298,7 +299,7 @@ export const getDividendosPeriodo = async (
   //obtengo la lista de socios
   const socios = await prisma.socio.findMany({
     where: {
-      fechaSalida: "",
+      estadoSocio: EstadoSocio.ACTIVO,
     },
     select: {
       idSocio: true,
@@ -474,7 +475,7 @@ export const getDividendosPeriodoSaved = async (
     where: {
       periodo: { contains: periodo },
       socio: {
-        fechaSalida: "",
+        estadoSocio: EstadoSocio.ACTIVO,
       },
     },
     select: {
@@ -499,7 +500,7 @@ export const getDividendosPeriodoSaved = async (
     where: {
       periodo: { contains: periodo },
       socio: {
-        fechaSalida: "",
+        estadoSocio: EstadoSocio.ACTIVO,
       },
     },
     select: {
@@ -515,7 +516,7 @@ export const getDividendosPeriodoSaved = async (
   const prestamos = await prisma.prestamo.findMany({
     where: {
       socio: {
-        fechaSalida: "",
+        estadoSocio: EstadoSocio.ACTIVO,
       },
     },
     select: {

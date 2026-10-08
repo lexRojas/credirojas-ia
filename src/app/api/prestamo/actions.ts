@@ -2,7 +2,7 @@
 
 import { estado_cuenta, Prestamo } from "@/types/types";
 // actions.ts
-import { prestamo_modalidad } from "@prisma/client";
+import { EstadoSocio, prestamo_modalidad } from "@prisma/client";
 
 import { PrismaClientKnownRequestError } from "@prisma/client/runtime/library";
 import { saldo_prestamos } from "@/types/types";
@@ -220,6 +220,7 @@ export const getVistaEstadoCuenta = async (): Promise<
 > => {
   const data = await prisma.socio.findMany({
     where: {
+      estadoSocio: EstadoSocio.ACTIVO,
       prestamos: {
         some: {},
       },
@@ -281,6 +282,7 @@ export const getVistaEstadoCuentaP = async (): Promise<
 > => {
   const data = await prisma.socio.findMany({
     where: {
+      estadoSocio: EstadoSocio.ACTIVO,
       prestamos: {
         some: {},
       },

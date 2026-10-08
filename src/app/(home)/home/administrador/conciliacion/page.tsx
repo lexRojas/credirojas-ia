@@ -19,6 +19,8 @@ interface Conciliacion {
     dividendos: number;
     dividendos_pagados: number;
     totalAjustes: number;
+    pagosDesafiliacion: number;
+    pagosIncobrables: number;
   };
 }
 
@@ -318,6 +320,41 @@ const Page = () => {
             {conciliacionesMensuales.map((cm, idx) => (
               <td key={idx} style={{ border: "1px solid #000000", padding: "8px", textAlign: "right" }}>
                 {celdaCRC(cm?.totales.totalAjustes)}
+              </td>
+            ))}
+          </tr>
+
+
+          {/* Pagos por desafiliación */}
+          <tr className="bg-red-100">
+            <td style={{ border: "1px solid #000000", padding: "8px" }}>Pagos por desafiliación</td>
+            <td style={{ border: "1px solid #000000", padding: "8px", textAlign: "right" }}>
+              {celdaCRC(conciliacionALL.totales.pagosDesafiliacion)}
+            </td>
+
+            <td style={{ border: "1px solid #000000", padding: "8px", textAlign: "right" }}>
+              {celdaCRC(conciliacionYTD.totales.pagosDesafiliacion)}
+            </td>
+            {conciliacionesMensuales.map((cm, idx) => (
+              <td key={idx} style={{ border: "1px solid #000000", padding: "8px", textAlign: "right" }}>
+                {celdaCRC(cm?.totales.pagosDesafiliacion)}
+              </td>
+            ))}
+          </tr>
+
+          {/* Pagos incobrables */}
+          <tr className="bg-red-100">
+            <td style={{ border: "1px solid #000000", padding: "8px" }}>Pagos incobrables</td>
+            <td style={{ border: "1px solid #000000", padding: "8px", textAlign: "right" }}>
+              {celdaCRC(conciliacionALL.totales.pagosIncobrables)}
+            </td>
+
+            <td style={{ border: "1px solid #000000", padding: "8px", textAlign: "right" }}>
+              {celdaCRC(conciliacionYTD.totales.pagosIncobrables)}
+            </td>
+            {conciliacionesMensuales.map((cm, idx) => (
+              <td key={idx} style={{ border: "1px solid #000000", padding: "8px", textAlign: "right" }}>
+                {celdaCRC(cm?.totales.pagosIncobrables)}
               </td>
             ))}
           </tr>

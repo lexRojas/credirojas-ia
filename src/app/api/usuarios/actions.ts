@@ -5,6 +5,7 @@ import { cookies } from "next/headers";
 import { SignJWT } from "jose";
 import { verifyPassword } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { EstadoSocio } from "@prisma/client";
 
 
 // Validar password
@@ -37,6 +38,10 @@ export const validarPassword = async (
 
     if (!user) {
       return { message: "Usuario no encontrado", success: false };
+    }
+
+    if (user.estadoSocio === EstadoSocio.DESAFILIADO) {
+      return { message: "Socio desafiliado, acceso no permitido", success: false };
     }
 
     /** esta funcion verifyPassword(hash, password); */

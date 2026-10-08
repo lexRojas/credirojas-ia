@@ -1,7 +1,7 @@
 "use server";
 
 import { prisma } from "@/lib/prisma";
-import { Prisma } from "@prisma/client";
+import { EstadoSocio, Prisma } from "@prisma/client";
 
 export interface DashboardData {
   f0: number;
@@ -192,7 +192,7 @@ export async function obtenerResumenPeriodo({ inicio, fin }: Periodo={}) {
   const toNum = (v: Prisma.Decimal | number | null | undefined) =>
     v ? Number(v) : 0;
 
-  const [sociosAgg, accionesAgg, prestamosAgg, pagosAgg] =
+  const [sociosAgg, accionesAgg, prestamosAgg, pagosAgg, desafiliacionesAgg, incobrablesAgg] =
     await prisma.$transaction([
       //===== CANTIDAD DE SOCIOS =====//
       prisma.socio.aggregate({
@@ -200,7 +200,10 @@ export async function obtenerResumenPeriodo({ inicio, fin }: Periodo={}) {
           idSocio: true,
         },
         where: {
-          OR: [{ fechaSalida: { gte: inicio as string } }, { fechaSalida: "" }],
+          OR: [
+            { estadoSocio: EstadoSocio.ACTIVO },
+            { fechaSalida: { gte: inicio as string } },
+          ],
           fechaIngreso: { lte: fin as string },
         }, // Cambia "fecha" por el campo fecha que uses
       }),
@@ -241,6 +244,24 @@ export async function obtenerResumenPeriodo({ inicio, fin }: Periodo={}) {
         where: {
           // Cambia "fechaPago" por el campo fecha que uses
           fechaReal: { gte: inicio as string, lte: fin as string },
+        },
+      }),
+
+      prisma.desafiliacion.aggregate({
+        _sum: {
+          saldoPagado: true,
+        },
+        where: {
+          fechaSalida: { gte: inicio as string, lte: fin as string },
+        },
+      }),
+
+      prisma.incobrable.aggregate({
+        _sum: {
+          monto: true,
+        },
+        where: {
+          fecha: { gte: inicio as string, lte: fin as string },
         },
       }),
     ]);
@@ -290,6 +311,8 @@ export async function obtenerResumenPeriodo({ inicio, fin }: Periodo={}) {
   const interesesMoratorios = toNum(pagosAgg._sum.interesMoratorio);
   const dividendos = toNum(dividentos_capitalizados._sum.monto ?? 0);
   const dividendos_pagados = toNum(dividentos_pag._sum.monto ?? 0);
+  const pagosDesafiliacion = toNum(desafiliacionesAgg._sum.saldoPagado ?? 0);
+  const pagosIncobrables = toNum(incobrablesAgg._sum.monto ?? 0);
 
   // Fórmula solicitada:
   // saldo = monto total de acciones - monto total de préstamos + capital + intereses ordinarios + intereses moratorios
@@ -300,7 +323,9 @@ export async function obtenerResumenPeriodo({ inicio, fin }: Periodo={}) {
     interesesOrdinarios +
     interesesMoratorios -
     dividendos_pagados +
-    totalAjustes;
+    totalAjustes -
+    pagosDesafiliacion -
+    pagosIncobrables;
 
   const interesesTotales = interesesOrdinarios + interesesMoratorios;
 
@@ -319,6 +344,8 @@ export async function obtenerResumenPeriodo({ inicio, fin }: Periodo={}) {
       dividendos,
       dividendos_pagados,
       totalAjustes,
+      pagosDesafiliacion,
+      pagosIncobrables,
     },
   };
 }
@@ -354,7 +381,7 @@ export const getAuditoriaSocioAcciones = async (
         nombre: true,
       },
       where: {
-        fechaSalida: "",
+        estadoSocio: EstadoSocio.ACTIVO,
       },
     });
 
@@ -481,7 +508,7 @@ export const getAuditoriaSocioPrestamos = async (
         },
       },
       where: {
-        fechaSalida: "",
+        estadoSocio: EstadoSocio.ACTIVO,
         prestamos: {
           some: {},
         },
@@ -574,7 +601,7 @@ export const getAuditoriaSocioPrestamos2 = async (
         },
       },
       where: {
-        fechaSalida: "",
+        estadoSocio: EstadoSocio.ACTIVO,
         prestamos: {
           some: {},
         },

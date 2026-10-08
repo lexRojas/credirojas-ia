@@ -3,6 +3,7 @@
 import { prisma } from "@/lib/prisma";
 import { Accion, sociosConAcciones_type } from "@/types/types";
 // actions.ts
+import { EstadoSocio } from "@prisma/client";
 
 import { PrismaClientKnownRequestError } from "@prisma/client/runtime/library";
 
@@ -131,6 +132,7 @@ export const getVistaEstadoAcciones = async (): Promise<
 > => {
   const sociosConAcciones = await prisma.socio.findMany({
     where: {
+      estadoSocio: EstadoSocio.ACTIVO,
       acciones: {
         some: {},
       },
