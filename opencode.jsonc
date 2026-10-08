@@ -7,8 +7,8 @@
     { "action": "shell", "resource": "git log *", "effect": "allow" },
     { "action": "shell", "resource": "git branch *", "effect": "allow" },
     { "action": "shell", "resource": "git remote *", "effect": "allow" },
-    { "action": "shell", "resource": "git add *", "effect": "ask" },
-    { "action": "shell", "resource": "git commit *", "effect": "ask" },
-    { "action": "shell", "resource": "git push *", "effect": "ask" }
-  ]
+    { "action": "shell", "resource": "git add *", "effect": "allow" },
+    { "action": "shell", "resource": "git commit *", "effect": "allow" },
+    { "action": "shell", "resource": "git push *", "effect": "ask" },
+  ],
 }

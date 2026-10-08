@@ -20,7 +20,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "CrediRojas v1.0",
+  title: "CrediRojas v 2.0",
   description: "Aplicación de crédito Familia Rojas",
 
 };
