@@ -1,0 +1,18 @@
+.barChart {
+  width: 90%;
+  max-width: 1500px;
+  height: 30rem;
+}
+
+@media screen and (max-width: 500px) {
+  .barChart {
+    width: 90%;
+    max-width: 200px;
+    height: 500px;
+  }
+}
+
+#myChart {
+  width: 500px; /* Establecer un ancho fijo */
+  height: 900px; /* Establecer un alto fijo */
+}

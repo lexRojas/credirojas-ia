@@ -1,0 +1,266 @@
+// prisma/schema.prisma
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+/// ===== Enums =====
+enum Modalidad {
+  ALEMAN
+  FRANCES
+}
+
+enum TipoCuota {
+  ORDINARIA
+  ADICIONAL
+}
+
+/// ===== Tablas =====
+
+
+model Variables {
+  idVariable   Int      @id @default(autoincrement())
+  descripcion  String   @unique
+  valor        Float    @db.Float 
+
+
+  @@map("variables")
+}
+
+model Rol { 
+  idRol        Int      @id @default(autoincrement())
+  descripcion  String
+  
+
+  @@map("rol")
+  Socio Socio[]
+}
+
+model Socio {
+  idSocio          Int        @id @default(autoincrement())
+  cedula           String    @unique     
+  nombre           String
+  fechaNacimiento  String?
+  fechaIngreso     String?
+  fechaSalida      String?
+  montoAccion      Float    @db.Float 
+  multiplicador    Int?       // si quieres decimales, cámbialo a Decimal @db.Decimal(14,4)
+  correo           String    @unique
+  telefono         String?
+  direccion        String?
+  estado_civil     String?
+  profesion        String?
+  username  String   @unique
+  password  String
+  rolId     Int?
+  createAt  DateTime   @default(now())
+  rol              Rol?       @relation(fields: [rolId], references: [idRol], onUpdate: Cascade)
+  // Relaciones
+  prestamos        Prestamo[]
+  acciones         Accion[]
+  pagos            Pago[]
+  solicitudes      Solicitud[]
+  votos            Votacion[]
+  resetTokens      PasswordResetToken[]
+  dividendos       Dividendos[]
+
+  @@index([cedula])  
+  @@map("socio")
+  
+}
+
+model PasswordResetToken {
+  id        Int      @id @default(autoincrement())
+  tokenHash String   @db.VarChar(128) // SHA-256 hex tiene 64 chars, dejo margen
+  user      Socio     @relation(fields: [userId], references: [idSocio], onDelete: Cascade)
+  userId    Int
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([tokenHash])
+}
+
+
+
+model CronActivity {
+
+  idCronActivity Int @id @default(autoincrement())
+  fecha DateTime
+  emailsSended Int @default(0)
+
+@@map("cronactivity")
+
+}
+
+model Accion {
+  idAccion            Int       @id @default(autoincrement())
+  socioId             Int
+  fecha               String
+  monto_colones       Float    @db.Float 
+  cantidadAcciones    Int       // número de acciones del monto depositado
+  periodo             String?   // ej: "2025-08" o el formato que definas
+  mes                 String?   // ej: "2025-08" o el formato que definas
+  pesoMultiplicador   Int?      // número de meses que trabaja ese monto
+  socio               Socio     @relation(fields: [socioId], references: [idSocio], onDelete: Cascade, onUpdate: Cascade)
+  calendario          Calendario @relation(fields: [fecha], references: [fecha], onUpdate: Cascade)
+
+
+  @@index([socioId])
+  @@map("accion")
+}
+
+model Prestamo {
+  idPrestamo               Int        @id @default(autoincrement())
+  socioId                  Int
+  fecha                    String
+  fecha_inicio_pago        String?
+  monto                    Float    @db.Float 
+  plazo                    Int        // meses
+  motivo                   String?
+  modalidad                Modalidad
+  saldoCapital             Float    @db.Float 
+  saldoInteresOrdinario    Float    @db.Float 
+  saldoInteresMoratorio    Float    @db.Float 
+
+  socio                    Socio      @relation(fields: [socioId], references: [idSocio], onDelete: Cascade, onUpdate: Cascade)
+  pagos                    Pago[]
+
+  @@index([socioId])
+  @@map("prestamo")
+}
+
+model Pago {
+  idPago               Int       @id @default(autoincrement())
+  socioId              Int
+  prestamoId           Int?
+  fechaProyectada      String
+  fechaReal            String
+  diasAtraso           Int?      // puedes calcularlo en app o trigger
+  monto                Float    @db.Float 
+  interesOrdinario     Float    @db.Float 
+  tipoCuota            TipoCuota
+  interesMoratorio     Float    @db.Float 
+
+  socio                Socio     @relation(fields: [socioId], references: [idSocio], onDelete: Cascade, onUpdate: Cascade)
+  prestamo             Prestamo? @relation(fields: [prestamoId], references: [idPrestamo], onDelete: SetNull, onUpdate: Cascade)
+  calendario          Calendario @relation(fields: [fechaReal], references: [fecha], onUpdate: Cascade)
+
+
+
+  @@index([socioId])
+  @@index([prestamoId])
+  @@map("pagos")
+}
+
+model Solicitud {
+  idSolicitud      Int        @id @default(autoincrement())
+  socioId          Int
+  fechaSolicitud   String
+  detalle          String?
+  monto_solicitado Float    @db.Float @default(0) 
+  plazo            Int        @default(0) // meses
+  aprobada         Boolean    @default(false)
+  fechaAprobacion  String?
+  cerrada          Boolean    @default(false)
+
+  socio            Socio      @relation(fields: [socioId], references: [idSocio], onDelete: Cascade, onUpdate: Cascade)
+  votos            Votacion[]
+
+  @@index([socioId])
+  @@map("solicitudes")
+
+  VotacionToken VotacionToken[]
+}
+
+model VotacionToken {
+  id          Int @id @default(autoincrement())
+  tokenHash   String  @db.VarChar(128) // SHA-256 hex tiene 64 chars, dejo margen
+  solicitud   Solicitud  @relation(fields: [idSolicitud], references: [idSolicitud], onDelete: Cascade)
+  idSolicitud Int
+  socioId     Int?
+  expiresAt   DateTime
+  createdAt   DateTime @default(now())
+  @@index([tokenHash])
+  @@map("votacionToken")
+}
+
+
+
+
+
+model Votacion {
+  idVoto        Int        @id @default(autoincrement())
+  socioId       Int
+  solicitudId   Int
+  fecha         String   // si quieres separar hora, puedes agregar campo string "hora"
+  hora          String?    // opcional, si necesitas textual (HH:mm)
+  observacion   String?
+  aprueba       Boolean    @default(false)
+  deniega       Boolean    @default(false)
+
+
+  socio         Socio      @relation(fields: [socioId], references: [idSocio], onDelete: Cascade, onUpdate: Cascade)
+  solicitud     Solicitud  @relation(fields: [solicitudId], references: [idSolicitud], onDelete: Cascade, onUpdate: Cascade)
+
+  @@index([socioId])
+  @@index([solicitudId])
+  @@map("votacion")
+}
+
+
+model Calendario {
+  idCalendario Int @id @default(autoincrement())
+  fecha        String  @unique  
+  periodo     String
+  mes         String
+  factor      Int
+  pagado      Boolean @default(false)
+
+  @@index([fecha])
+  @@map("calendario")
+  Pago Pago[]
+  Accion Accion[]
+}
+
+
+model AuxiliarContable{
+  idAuxiliar      Int @id @default(autoincrement())
+  fecha           String 
+  tipoMovimiento  Int  @default(1)
+  monto           Float @default(0)
+  nota            String
+
+  @@index([fecha])
+  @@map("auxiliarContable")
+}
+
+
+model Dividendos{
+  idDividendos    Int @id @default(autoincrement())
+  fecha           String 
+  monto           Float @default(0)
+  socioId         Int
+  periodo         String
+  capitalizado    Boolean @default(false)
+  periodoBloqueado Boolean @default(false)
+  socio           Socio @relation(fields: [socioId], references: [idSocio], onDelete: Cascade, onUpdate: Cascade)
+  
+  @@index([socioId])
+  @@index([fecha])
+  @@map("dividendos")
+}
+
+
+enum prestamo_modalidad {
+  ALEMAN
+  FRANCES
+}
+
+enum pagos_tipoCuota {
+  ORDINARIA
+  ADICIONAL
+}

@@ -1,0 +1,43 @@
+/* styleDashboard.css */
+
+.card {
+  position: relative;
+  background-color: #ffffff;
+  border-radius: 12px; /* bordes redondeados moderados */
+  padding: 1.5rem;
+  box-shadow: 0 6px 15px rgba(0, 0, 0, 0.15); /* sombra suave */
+  border: 4px solid transparent;
+  background-clip: padding-box;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center ;
+  font-size: xx-large;
+}
+
+/* Anillo exterior con dos tonos */
+.card::before {
+  content: "";
+  position: absolute;
+  top: -6px;
+  left: -6px;
+  right: -6px;
+  bottom: -6px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #4f46e5, #06b6d4); /* degradado 2 tonos */
+  z-index: -1;
+}
+
+/* Título dentro de la Card */
+.cardTitle {
+  position: absolute;
+  top: -1.2rem; /* sobresale el borde superior */
+  left: 1rem;
+  background-color: #ffffff;
+  padding: 0 0.75rem;
+  font-size: 1.5rem; /* grande y claro */
+  font-weight: bold;
+  color: #1e293b; /* gris oscuro, legible */
+  border-radius: 8px;
+  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.1);
+}

@@ -1,0 +1,18 @@
+.logo {
+  filter: drop-shadow(1px 1px 3px #ffffff);
+  width: 80%; /* Cambia el ancho a 80% */
+  height: auto; /* Mantén la proporción original */
+  max-width: 100%; /* Asegura que no exceda el 100% del contenedor */
+  max-height: 100%; /* Asegura que no exceda el 100% del contenedor */
+}
+
+.logo:hover {
+  filter: drop-shadow(3px 3px 2px #eeff00);
+}
+
+.logo-login {
+  filter: drop-shadow(1px 1px 3px #030303);
+}
+.logo-login-white {
+  filter: drop-shadow(1px 1px 3px #ffffff);
+}
