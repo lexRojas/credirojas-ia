@@ -1,6 +1,7 @@
 "use client";
 
 import { deleteAuxiliar, getAuxiliares, saveAuxiliar, updateAuxiliar } from "@/app/api/auxiliar/actions";
+import { todayCR } from "@/lib/date";
 import { useEffect, useState } from "react";
 
 interface AuxiliarContableForm {
@@ -27,7 +28,7 @@ export default function Page() {
 
 
     const [form, setForm] = useState<AuxiliarContableForm>({
-        fecha: new Date().toLocaleDateString('en-CA').replace(/\//g, '-'),
+        fecha: todayCR(),
         tipoMovimiento: 1,
         monto: "",
         nota: "",
@@ -155,7 +156,7 @@ export default function Page() {
             setIsEditing(false);
 
             // Opcional: reset
-            setForm({ fecha: new Date().toLocaleDateString('en-CA').replace(/\//g, '-'), tipoMovimiento: 1, monto: 0, nota: "" });
+            setForm({ fecha: todayCR(), tipoMovimiento: 1, monto: 0, nota: "" });
 
         }
     };
@@ -175,7 +176,7 @@ export default function Page() {
 
     const handleCancel = () => {
         setIsEditing(false);
-        setForm({ fecha: new Date().toLocaleDateString('en-CA').replace(/\//g, '-'), tipoMovimiento: 1, monto: 0, nota: "" });
+        setForm({ fecha: todayCR(), tipoMovimiento: 1, monto: 0, nota: "" });
     }
 
     const handleDelete = () => {
@@ -187,7 +188,7 @@ export default function Page() {
 
         SetData(prev => prev.filter(item => item.idAuxiliar !== form.idAuxiliar))
 
-        setForm({ fecha: new Date().toLocaleDateString('en-CA').replace(/\//g, '-'), tipoMovimiento: 1, monto: 0, nota: "" });
+        setForm({ fecha: todayCR(), tipoMovimiento: 1, monto: 0, nota: "" });
 
     }
 

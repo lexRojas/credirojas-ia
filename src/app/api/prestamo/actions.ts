@@ -8,6 +8,7 @@ import { PrismaClientKnownRequestError } from "@prisma/client/runtime/library";
 import { saldo_prestamos } from "@/types/types";
 import { getVariableValue } from "../variables/actions";
 import { prisma } from "@/lib/prisma";
+import { parseDateOnly, toDateOnly } from "@/lib/date";
 
 // Crear una instancia de PrismaClient
 
@@ -336,7 +337,7 @@ export const getVistaEstadoCuentaP = async (): Promise<
       const pagosGenerados = [];
 
       const fechaProyectada = prestamo.fecha_inicio_pago
-        ? new Date(prestamo.fecha_inicio_pago)
+        ? parseDateOnly(prestamo.fecha_inicio_pago)
         : new Date();
 
       const pagosRealizados = prestamo.pagos.length;
@@ -367,7 +368,7 @@ export const getVistaEstadoCuentaP = async (): Promise<
         // Registrar el pago proyectado
         pagosGenerados.push({
           idPago: 900 + i,
-          fechaProyectada: fechaProyectada.toISOString().split("T")[0],
+          fechaProyectada: toDateOnly(fechaProyectada),
           fechaReal: null,
           monto: montoCapital,
           interesOrdinario: interesOrdinario,

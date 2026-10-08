@@ -1,6 +1,8 @@
 # AGENTS.md
 
 - Leer también `MEMORY.md` para contexto persistente del proyecto y preferencias del usuario.
+- Leer `docs/constitution.md` para principios del proyecto, reglas de cambio y criterios antes de publicar.
+- Lee `docs/constitution.md` y la spec activa (`specs/NNN-*/`) antes de tocar código.
 
 ## Comandos
 - `npm run dev` inicia Next.js con Turbopack en el puerto 3000.
@@ -19,6 +21,13 @@
 - Para publicar cambios usa la skill `github-sync` o el comando `/git/publish`; ambos deben pedir confirmación antes de `git add`, `git commit` y `git push`.
 - `opencode.jsonc` permite inspección Git básica sin preguntar, pero deja `git add`, `git commit` y `git push` en modo confirmación.
 
+## SDD y especificaciones
+- Toda funcionalidad nueva debe tener una spec activa en `specs/NNN-nombre-corto/`.
+- Usa EARS para requisitos verificables; guía en `docs/ears.md` y flujo en `docs/sdd.md`.
+- Cada spec debe incluir `spec.md`, `plan.md`, `tasks.md`, `decisions.md` y `validation.md`.
+- No implementes requisitos que no estén en la spec aprobada.
+- Usa `/sdd/spec`, `/sdd/plan`, `/sdd/implement`, `/sdd/validate` y `/sdd/review-ears` para el flujo SDD.
+
 ## Estructura de la app
 - Es una app Next.js App Router bajo `src/app`; `@/*` apunta a `src/*`.
 - `src/app/(home)/layout.tsx` es un layout cliente que envuelve páginas `/home/*` con el sidebar y cierra sesión tras 10 minutos de inactividad borrando `access_token`.
@@ -30,6 +39,12 @@
 - Variables de entorno usadas por el código: `DATABASE_URL`, `JWT_SECRET`, `NEXT_PUBLIC_APP_URL`, `EMAIL_USER`, `EMAIL_PASS` y `CARBONE_API_KEY`.
 - Los flujos de correo usan Nodemailer/Gmail con credenciales del entorno; los reportes se generan con Carbone desde `src/app/api/reportes/route.ts`.
 - No imprimas ni modifiques `.env`; está ignorado y puede contener credenciales reales.
+
+## Fechas
+- Las fechas de negocio se manejan como `string` `YYYY-MM-DD`; no uses `DateTime` salvo instantes técnicos con hora real.
+- No uses `toISOString().split("T")[0]` para fechas de negocio; usa `todayCR()` de `src/lib/date.ts`.
+- No formatees `YYYY-MM-DD` con `new Date(fecha)` para mostrarlo; usa `formatDateOnly()` para evitar desplazamientos por zona horaria.
+- Los inputs `type="date"` deben recibir y devolver `YYYY-MM-DD`.
 
 ## Estilos y archivos generados
 - Tailwind usa estilo v4: `src/styles/globals.css` importa `tailwindcss`, con `@tailwindcss/postcss` en `postcss.config.mjs`; no existe `tailwind.config.*`.

@@ -9,6 +9,7 @@ import { Pagos, saldo_prestamos, Socio } from "@/types/types";
 import { deletePago, getPagosByPrestamoId, savePago } from "@/app/api/abonos/actions";
 // import { pagos_tipoCuota } from "@prisma/client";
 import { calcularProximaCuota } from "@/lib/calculos";
+import { todayCR } from "@/lib/date";
 import { TipoCuota } from "@prisma/client";
 
 
@@ -38,8 +39,8 @@ export default function PrestamoForm() {
         idPagos: 0,
         prestamoId: 0,
         socioId: 0,
-        fechaProyectada: new Date().toLocaleDateString("en-CA"),
-        fechaReal: new Date().toLocaleDateString("en-CA"),
+        fechaProyectada: todayCR(),
+        fechaReal: todayCR(),
         diasAtraso: 0,
         monto: 0,
         montoCuotaCapital: 0,
@@ -211,8 +212,8 @@ export default function PrestamoForm() {
             porcentajeInteresOrdinario: 5,
             porcentajeInteresMoratorio: 5,
             saldoActual: prestamo.saldoCapital,
-            fechaProyectadaPago: fechaProyectada ?? new Date().toLocaleDateString("en-CA"),
-            fechaReal: fechaReal ?? new Date().toLocaleDateString("en-CA"),
+            fechaProyectadaPago: fechaProyectada ?? todayCR(),
+            fechaReal: fechaReal ?? todayCR(),
             modeloInteres: "ALEMAN",
             fechaGenerada: prestamo.fecha
 

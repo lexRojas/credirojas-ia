@@ -6,6 +6,7 @@ import icon from '@/../public/images/icon.png'
 import Image from "next/image";
 
 import { formTypeSolicitud, saveSolicitud } from "@/app/api/solicitudes/actions";
+import { todayCR } from "@/lib/date";
 
 
 
@@ -49,7 +50,7 @@ export default function ModalSolicitudPrestamo(props: modalProps) {
 
         const newSolicitud: formTypeSolicitud = {
             socioId: props.socio.idSocio,
-            fechaSolicitud: new Date().toISOString().split("T")[0],
+            fechaSolicitud: todayCR(),
             detalle: formData.motivo,
             aprobada: false,
             fechaAprobacion: "",

@@ -1,5 +1,6 @@
 
 import { prisma } from "@/lib/prisma";
+import { todayCR } from "@/lib/date";
 import Image from "next/image";
 import funlogo from "../../../public/images/fun.png";
 import ups from "../../../public/images/ups.png";
@@ -71,7 +72,7 @@ export default async function Page({
                 data: {
                     socioId: vt.socioId,
                     solicitudId: vt.idSolicitud,
-                    fecha: new Date().toISOString().split("T")[0], // mejor guardar Date completa
+                    fecha: todayCR(),
                     aprueba: aprobadoResult,
                     deniega: denegadoResult
                 },

@@ -11,7 +11,7 @@ import { Prestamo, Socio } from "@/types/types";
 import { getResumenAccionesByIdSocio } from "@/app/api/acciones/actions";
 import ToggleButton from "@/components/ToggleButton";
 import { generateReport } from "@/lib/report";
-import { addMonths } from "@/lib/tools";
+import { addMonthsDateOnly, parseDateOnly, todayCR } from "@/lib/date";
 
 
 export default function PrestamoForm() {
@@ -198,7 +198,7 @@ export default function PrestamoForm() {
                 ...formData,
                 socioId: selectedItem.idSocio,
                 cedula: selectedItem.cedula!,
-                fecha: new Date().toLocaleDateString("en-CA")
+                fecha: todayCR()
             })
 
             const prestamosSocio = await getPrestamoBySocioId(selectedItem.idSocio);
@@ -261,7 +261,7 @@ export default function PrestamoForm() {
     const generarPagareClick = async () => {
 
 
-        const fechaProy = new Date(formData.fecha_inicio_pago + "T00:00:00");
+        const fechaProy = parseDateOnly(formData.fecha_inicio_pago);
 
 
         const data = {
@@ -279,7 +279,7 @@ export default function PrestamoForm() {
                 valor_cuota: formData.monto / formData.plazo,
                 fecha_pago: fechaProy.getDate(),
                 fecha_primer_cuota: formData.fecha_inicio_pago,
-                fecha_ultima_cuota: addMonths(fechaProy, formData.plazo-1).toLocaleDateString("en-CA").split("T")[0],
+                fecha_ultima_cuota: addMonthsDateOnly(formData.fecha_inicio_pago, formData.plazo - 1),
             },
             documento: {
                 lugar_suscripcion: "Guápiles, Pococí, Limón",

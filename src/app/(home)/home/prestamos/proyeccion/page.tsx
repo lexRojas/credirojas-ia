@@ -2,6 +2,7 @@
 import Simulador from "@/components/Simulador";
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
+import { todayCR } from "@/lib/date";
 
 export default function Page() {
 
@@ -15,7 +16,7 @@ export default function Page() {
     nombre: "",
     monto: 0,
     plazo: 0,
-    fecha: new Date().toISOString().split("T")[0]
+    fecha: todayCR()
   });
 
 
@@ -65,7 +66,7 @@ export default function Page() {
           <button className="w-40 bg-indigo-600 text-white py-2 px-4 rounded-md hover:bg-indigo-700 transition" onClick={() => setShowSimulador(false)}> Simular de nuevo </button>
         </div>
 
-        <Simulador nombre={dataForm.nombre} input={{ monto: dataForm.monto, plazoMeses: dataForm.plazo, tasaInteresMensual: 5, modelo: "ALEMAN", fechaSolicitud: new Date().toISOString().split("T")[0], fechaPrimerPago: dataForm.fecha }} />
+        <Simulador nombre={dataForm.nombre} input={{ monto: dataForm.monto, plazoMeses: dataForm.plazo, tasaInteresMensual: 5, modelo: "ALEMAN", fechaSolicitud: todayCR(), fechaPrimerPago: dataForm.fecha }} />
 
       </div>)
 

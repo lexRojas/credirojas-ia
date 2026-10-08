@@ -3,6 +3,7 @@
 
 import { getSocios } from "@/app/api/socio/actions";
 import { cerrarSolicitud, listaSolicitudesPendientes } from "@/app/api/solicitudes/actions"
+import { formatDateOnly } from "@/lib/date";
 import { useEffect, useState } from "react"
 
 
@@ -142,7 +143,7 @@ export default function Page() {
                             <tr key={solicitud.idSolicitud} className="border-b border-gray-200 hover:bg-gray-100">
                                 <td className="py-3 px-4">{solicitud.idSolicitud}</td>
                                 <td className="py-3 px-4">{solicitud.socio.nombre}</td>
-                                <td className="py-3 px-4">{new Date(solicitud.fechaSolicitud).toLocaleDateString()}</td>
+                                <td className="py-3 px-4">{formatDateOnly(solicitud.fechaSolicitud)}</td>
                                 <td className="py-3 px-4">{solicitud.detalle}</td>
                                 <td className="py-3 px-4 text-right">{solicitud.monto_solicitado.toLocaleString("es-CR", { style: "currency", currency: "CRC" })}</td>
                                 <td className="py-3 px-4 text-center">{solicitud.plazo} {solicitud.plazo > 1 ? "meses" : "mes"}</td>

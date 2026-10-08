@@ -10,6 +10,7 @@ import Image from "next/image"
 import ProgressBar from "./ProgressBar"
 import { ChangeEvent, useEffect, useState } from "react"
 import { CuotaProyectada, GenerarProyeccionInput, generarProyeccionPagos } from "@/lib/calculos"
+import { formatDateOnly } from "@/lib/date"
 import ModalSolicitudPrestamo from "./prestamo/ModalSolicitud"
 import Dividendos from "./dividendos/Dividendos"
 import Loading from "./loading/Loading"
@@ -414,7 +415,7 @@ export default function DashboardSocio() {
                                         <td className="px-2 md:px-4 py-2">{item.idAccion}</td>
                                         <td className="px-2 md:px-4 py-2">{item.periodo}</td>
                                         <td className="px-2 md:px-4 py-2">{item.mes}</td>
-                                        <td className="px-2 md:px-4 py-2 hidden md:block">{new Date(item.fecha).toLocaleDateString('es-CR')}</td>
+                                        <td className="px-2 md:px-4 py-2 hidden md:block">{formatDateOnly(item.fecha)}</td>
                                         <td className="px-2 md:px-4 py-2 text-center">{item.cantidadAcciones}</td>
                                         <td className="px-2 md:px-4 py-2 text-right">
                                             {item.monto_colones.toLocaleString('es-CR', { style: 'currency', currency: 'CRC' })}

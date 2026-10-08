@@ -1,6 +1,7 @@
 'use client'
 
 import { obtenerResumenPeriodo } from "@/app/api/dashboard/actions";
+import { toDateOnly } from "@/lib/date";
 import { useEffect, useMemo, useState } from "react";
 
 interface Conciliacion {
@@ -31,8 +32,8 @@ const obtenerFechasAnioActual = (): { inicio: string; fin: string } => {
   const inicio = new Date(fechaActual.getFullYear(), 0, 1);
   const fin = new Date(fechaActual.getFullYear(), 11, 31);
   return {
-    inicio: inicio.toISOString().split("T")[0],
-    fin: fin.toISOString().split("T")[0]
+    inicio: toDateOnly(inicio),
+    fin: toDateOnly(fin)
   };
 };
 
@@ -42,8 +43,8 @@ const obtenerPrimerUltimoDiaMes = (mes: number): { primerDia: string; ultimoDia:
   const primerDia = new Date(anioActual, mes - 1, 1);
   const ultimoDia = new Date(anioActual, mes, 0);
   return {
-    primerDia: primerDia.toISOString().split("T")[0],
-    ultimoDia: ultimoDia.toISOString().split("T")[0]
+    primerDia: toDateOnly(primerDia),
+    ultimoDia: toDateOnly(ultimoDia)
   };
 };
 

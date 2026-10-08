@@ -1,6 +1,7 @@
 "use server";
 
 import { prisma } from "@/lib/prisma";
+import { todayCR } from "@/lib/date";
 import { getVariableValue } from "../variables/actions";
 
 const calcularInteresesesFuturos = (
@@ -43,7 +44,7 @@ export const getProyeccionDividendos = async (
   if (!periodo) {
     const periodo_table = await prisma.calendario.findUnique({
       where: {
-        fecha: new Date().toISOString().split("T")[0],
+        fecha: todayCR(),
       },
       select: {
         periodo: true,
@@ -234,7 +235,7 @@ export const getProyeccionDividendos = async (
     where: {
       periodo: periodo,
       fecha: {
-        gte: new Date().toISOString().split("T")[0],
+        gte: todayCR(),
       },
     },
     _count: {
@@ -422,7 +423,7 @@ export const setDividendosPeriodo = async (
     // Preparar datos para createMany (más eficiente)
     const dataToInsert = nuevosDividendos.map((d) => ({
       socioId: d.idSocio,
-      fecha: new Date().toISOString().split("T")[0],
+      fecha: todayCR(),
       periodo,
       monto: d.montoDividendos,
       capitalizado: false,

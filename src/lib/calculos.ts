@@ -1,3 +1,5 @@
+import { parseDateOnly, toDateOnly } from "@/lib/date";
+
 type ModeloInteres = "ALEMAN" | "FRANCES";
 
 export interface CalcularProximaCuotaInput {
@@ -54,9 +56,9 @@ export async function calcularProximaCuota(
   } = input;
 
   // 1️⃣ Convertir fechas a Date
-  const fechaProy = new Date(fechaProyectadaPago + "T00:00:00");
-  const fechaAct = new Date(fechaReal + "T00:00:00");
-  const fechaGen = new Date(fechaGenerada + "T00:00:00");
+  const fechaProy = parseDateOnly(fechaProyectadaPago);
+  const fechaAct = parseDateOnly(fechaReal);
+  const fechaGen = parseDateOnly(fechaGenerada);
 
   // 2️⃣ Calcular días de atraso
   const diasAtraso = Math.max(
@@ -135,9 +137,9 @@ export function generarProyeccionPagos(
   // Iterar sobre cada cuota
   for (let n = 1; n <= plazoMeses; n++) {
     // fecha de pago = fechaPrimerPago + (n-1) meses
-    const fecha = new Date(fechaPrimerPago + "T00:00:00");
+    const fecha = parseDateOnly(fechaPrimerPago);
     fecha.setMonth(fecha.getMonth() + (n - 1));
-    const fechaPago = fecha.toISOString().split("T")[0];
+    const fechaPago = toDateOnly(fecha);
 
     const interes = saldo * i;
     let amortizacionCapital = 0;

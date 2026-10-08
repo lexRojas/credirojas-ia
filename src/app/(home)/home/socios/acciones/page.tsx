@@ -8,6 +8,7 @@ import { getSocios } from "@/app/api/socio/actions";
 import { getVariableValue } from "@/app/api/variables/actions";
 import { saveAccion } from "@/app/api/acciones/actions";
 import ProgressBar from "@/components/ProgressBar";
+import { parseDateOnly, todayCR } from "@/lib/date";
 
 
 interface socioTemplateList {
@@ -100,9 +101,10 @@ export default function AccionForm() {
 
     // Establecer la fecha actual en el estado 'fecha' al cargar el componente
     useEffect(() => {
-        const today = new Date().toLocaleDateString("en-CA");
-        const year = new Date().getFullYear();
-        const mes = new Date().getMonth() + 1;
+        const today = todayCR();
+        const todayDate = parseDateOnly(today);
+        const year = todayDate.getFullYear();
+        const mes = todayDate.getMonth() + 1;
 
 
         setFormData((prevFormData) => ({
