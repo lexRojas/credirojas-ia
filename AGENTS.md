@@ -4,10 +4,18 @@
 
 ## Comandos
 - `npm run dev` inicia Next.js con Turbopack en el puerto 3000.
-- `npm run build` ejecuta `prisma generate` antes de `next build --turbopack`; úsalo después de cambios en el esquema de Prisma.
+- `npm run build` ejecuta `prisma generate` antes de `next build --turbopack`; úsalo después de cambios en Prisma, pero las migraciones productivas las aplica GitHub Actions con `npx prisma migrate deploy`.
 - `npm run lint` es la única verificación en scripts y falla con advertencias (`eslint . --ext .js,.ts,.jsx,.tsx --max-warnings=0`).
 - No hay script de tests configurado; para verificar solo TypeScript ejecuta `npx tsc --noEmit`.
-- Existen `package-lock.json` y `pnpm-lock.yaml`; no cambies de gestor de paquetes ni reescribas lockfiles salvo que el usuario lo pida.
+- Usa npm como gestor de paquetes; conserva `package-lock.json` y no regeneres lockfiles de pnpm/yarn/bun salvo que el usuario lo pida.
+
+## GitHub Actions y producción
+- `.github/workflows/production.yml` corre en pushes a `master`, `main` y `prod`, y también manualmente con `workflow_dispatch`.
+- Ese workflow usa Node 20, instala dependencias con `npm ci` y ejecuta `npx prisma migrate deploy` contra `secrets.DATABASE_URL_PROD`.
+- Antes de cambiar `prisma/schema.prisma`, genera y versiona la migración en `prisma/migrations/`; producción no usa `db push`.
+- Antes de hacer push a `main`, `master` o `prod`, valida al menos `npm run lint`, `npx tsc --noEmit` y `npm run build`.
+- No renombres ni elimines `DATABASE_URL_PROD` sin actualizar el workflow y los secretos de GitHub.
+- El workflow no despliega Vercel explícitamente; si Vercel despliega, depende de la integración GitHub↔Vercel.
 
 ## Estructura de la app
 - Es una app Next.js App Router bajo `src/app`; `@/*` apunta a `src/*`.

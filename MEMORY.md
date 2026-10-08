@@ -8,4 +8,6 @@
 ## Memoria del proyecto
 - Esta es una app Next.js App Router para CrediRojas.
 - Las instrucciones operativas para agentes están en `AGENTS.md`; léelo para comandos, estructura, detalles de Prisma/env y cautelas sobre archivos generados.
+- Hay un workflow de producción en `.github/workflows/production.yml` que aplica migraciones Prisma en pushes a `main`, `master` o `prod` usando `secrets.DATABASE_URL_PROD`.
+- El deploy de Vercel no está definido en el workflow; asumir integración automática GitHub↔Vercel salvo que el usuario indique otro flujo.
 - Mantén este archivo para contexto persistente y preferencias que no pertenezcan como instrucciones técnicas directas en `AGENTS.md`.

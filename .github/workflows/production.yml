@@ -1,0 +1,32 @@
+name: Production (migrate PROD + Vercel deploy)
+
+on:
+  push:
+    branches: [master, main, prod] # Ajusta según tu flujo de producción
+  workflow_dispatch: {}
+
+jobs:
+  migrate_prod:
+    runs-on: ubuntu-latest
+    concurrency:
+      group: prod-migrations
+      cancel-in-progress: false
+
+    steps:
+      # 1️⃣ Clona tu repositorio
+      - uses: actions/checkout@v4
+
+      # 2️⃣ Configura Node.js y cache para npm
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      # 3️⃣ Instala dependencias con npm de forma reproducible
+      - run: npm ci
+
+      # 4️⃣ Ejecuta migraciones de Prisma en PROD
+      - name: Apply Prisma migrations to PROD (MySQL)
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL_PROD }}
+        run: npx prisma migrate deploy
