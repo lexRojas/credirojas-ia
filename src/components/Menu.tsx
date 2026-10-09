@@ -94,6 +94,7 @@ const Sidebar = ({
                 { name: "Nuevo", href: "/home/socios/signing" },
                 { name: "Modificar", href: "/home/socios/browse" },
                 { name: "Desafiliar", href: "/home/socios/desafiliar" },
+                { name: "Asignacion de Beneficiarios", href: "/home/socios/beneficiarios" },
                 { name: "Invitar nuevo socio", href: "/home/socios/invitar" },
                 { name: "Ver mi Dashboard", href: "/home/socios/dashboard" },
             ]

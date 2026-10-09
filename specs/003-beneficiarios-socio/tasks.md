@@ -1,0 +1,27 @@
+# Tasks: Beneficiarios por Socio
+
+- [x] Aprobar spec y alcance.
+- [x] Resolver preguntas abiertas numeradas.
+- [x] Revisar y aprobar plan técnico.
+- [x] Definir modelo de datos final para beneficiarios por socio.
+- [x] Crear migración Prisma para `TipoBeneficiario` y `SocioBeneficiario`.
+- [x] Agregar opción de menú `Socios -> Asignacion de Beneficiarios`.
+- [x] Crear pantalla de asignación de beneficiarios.
+- [x] Implementar selección de socio.
+- [x] Implementar captura de cédula, nombre completo, parentesco, tipo y porcentaje.
+- [x] Implementar lista de parentescos usuales.
+- [x] Implementar porcentaje por defecto de 100% para primer beneficiario de cada tipo.
+- [x] Validar suma exacta de 100% por tipo de beneficiario.
+- [x] Impedir porcentajes menores o iguales a 0% en beneficiarios ordinarios y contingentes.
+- [x] Bloquear duplicado exacto por socio, tipo y cédula.
+- [x] Validar autorización para usuarios con `rolId = 2`.
+- [x] Implementar server actions para consultar y guardar beneficiarios.
+- [x] Integrar beneficiarios en `Socios -> Desafiliar` cuando el motivo sea `FALLECIMIENTO`.
+- [x] Bloquear desafiliación por fallecimiento si el socio no tiene beneficiarios asignados.
+- [x] Mostrar beneficiarios ordinarios y contingentes en grupos separados durante desafiliación por fallecimiento.
+- [x] Implementar check de disponibilidad por beneficiario durante desafiliación por fallecimiento.
+- [x] Distribuir saldo disponible primero entre ordinarios disponibles y luego entre contingentes disponibles si queda saldo.
+- [x] Bloquear confirmación de desafiliación por fallecimiento si queda saldo sin distribuir.
+- [x] Ejecutar `npm run lint`.
+- [x] Ejecutar `npx tsc --noEmit`.
+- [x] Ejecutar `npm run build`.

@@ -31,6 +31,11 @@ enum MotivoSalida {
   FALLECIMIENTO
 }
 
+enum TipoBeneficiario {
+  ORDINARIO
+  CONTINGENTE
+}
+
 /// ===== Tablas =====
 
 model Variables {
@@ -79,6 +84,7 @@ model Socio {
   dividendos      Dividendos[]
   desafiliaciones Desafiliacion[]
   incobrables     Incobrable[]
+  beneficiarios   SocioBeneficiario[]
 
   @@index([cedula])
   @@map("socio")
@@ -224,6 +230,25 @@ model Incobrable {
   @@index([desafiliacionId])
   @@index([fecha])
   @@map("incobrables")
+}
+
+model SocioBeneficiario {
+  idBeneficiario      Int              @id @default(autoincrement())
+  socioId             Int
+  cedula              String
+  nombreCompleto      String
+  parentesco          String
+  tipoBeneficiario    TipoBeneficiario
+  porcentajeBeneficio Float            @db.Float
+  createdAt           DateTime         @default(now())
+  updatedAt           DateTime         @updatedAt
+
+  socio Socio @relation(fields: [socioId], references: [idSocio], onDelete: Cascade, onUpdate: Cascade)
+
+  @@unique([socioId, tipoBeneficiario, cedula])
+  @@index([socioId])
+  @@index([tipoBeneficiario])
+  @@map("socioBeneficiarios")
 }
 
 model Solicitud {

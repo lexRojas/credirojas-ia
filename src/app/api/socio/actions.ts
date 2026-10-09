@@ -7,7 +7,7 @@ import { isDateOnly, todayCR } from "@/lib/date";
 import { prisma } from "@/lib/prisma";
 import { Socio } from "@/types/types";
 // actions.ts
-import { EstadoSocio, MotivoSalida, TipoCuota } from "@prisma/client";
+import { EstadoSocio, MotivoSalida, TipoBeneficiario, TipoCuota } from "@prisma/client";
 import { PrismaClientKnownRequestError } from "@prisma/client/runtime/library";
 import { jwtVerify } from "jose";
 import { cookies } from "next/headers";
@@ -244,6 +244,8 @@ export interface BeneficiarioDesafiliacionInput {
   nombre: string;
   cedula: string;
   montoPagado: number;
+  tipoBeneficiario?: TipoBeneficiario;
+  porcentajeBeneficio?: number;
 }
 
 export interface DesafiliarSocioInput {
@@ -493,6 +495,21 @@ export const desafiliarSocio = async (
     const beneficiarios = input.beneficiarios ?? [];
 
     if (input.motivoSalida === MotivoSalida.FALLECIMIENTO) {
+      const beneficiariosAsignados = await prisma.socioBeneficiario.findMany({
+        where: { socioId: input.socioId },
+        select: {
+          cedula: true,
+          tipoBeneficiario: true,
+        },
+      });
+
+      if (beneficiariosAsignados.length === 0) {
+        return {
+          success: false,
+          message: "El socio no tiene beneficiarios asignados. No procede la desafiliación por fallecimiento.",
+        };
+      }
+
       if (beneficiarios.length === 0) {
         return {
           success: false,
@@ -524,7 +541,22 @@ export const desafiliarSocio = async (
       if (totalBeneficiarios !== resumen.saldoPagado) {
         return {
           success: false,
-          message: "La suma de beneficiarios debe coincidir con el saldo a pagar.",
+          message: "La distribución de beneficiarios debe coincidir con el saldo a pagar.",
+        };
+      }
+
+      const todosAsignados = beneficiarios.every((beneficiario) =>
+        beneficiariosAsignados.some(
+          (asignado) =>
+            asignado.cedula === beneficiario.cedula &&
+            asignado.tipoBeneficiario === beneficiario.tipoBeneficiario
+        )
+      );
+
+      if (!todosAsignados) {
+        return {
+          success: false,
+          message: "La distribución contiene beneficiarios que no están asignados al socio.",
         };
       }
     }

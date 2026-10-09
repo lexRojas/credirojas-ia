@@ -8,6 +8,10 @@ import {
   puedeDesafiliarSocios,
   SocioDesafiliacionResumen,
 } from "@/app/api/socio/actions";
+import {
+  getBeneficiariosBySocioId,
+} from "@/app/api/beneficiarios/actions";
+import type { SocioBeneficiarioOutput } from "@/app/api/beneficiarios/actions";
 import { todayCR } from "@/lib/date";
 import { Socio } from "@/types/types";
 import { useEffect, useMemo, useState } from "react";
@@ -20,12 +24,6 @@ const currency = new Intl.NumberFormat("es-CR", {
   currency: "CRC",
 });
 
-const blankBeneficiario = (): BeneficiarioDesafiliacionInput => ({
-  nombre: "",
-  cedula: "",
-  montoPagado: 0,
-});
-
 export default function DesafiliarSocioPage() {
   const [autorizado, setAutorizado] = useState<boolean | null>(null);
   const [socios, setSocios] = useState<Socio[]>([]);
@@ -35,9 +33,12 @@ export default function DesafiliarSocioPage() {
     useState<MotivoSalidaOption>("RENUNCIA");
   const [justificacionSalida, setJustificacionSalida] = useState("");
   const [observacion, setObservacion] = useState("");
-  const [beneficiarios, setBeneficiarios] = useState<
-    BeneficiarioDesafiliacionInput[]
-  >([blankBeneficiario()]);
+  const [beneficiariosAsignados, setBeneficiariosAsignados] = useState<
+    SocioBeneficiarioOutput[]
+  >([]);
+  const [beneficiariosDisponibles, setBeneficiariosDisponibles] = useState<
+    number[]
+  >([]);
   const [resumen, setResumen] = useState<SocioDesafiliacionResumen | null>(
     null
   );
@@ -59,16 +60,85 @@ export default function DesafiliarSocioPage() {
     init();
   }, []);
 
-  const totalBeneficiarios = useMemo(
-    () =>
-      Math.round(
-        beneficiarios.reduce(
-          (total, beneficiario) => total + Number(beneficiario.montoPagado),
-          0
-        ) * 100
-      ) / 100,
-    [beneficiarios]
-  );
+  useEffect(() => {
+    const loadBeneficiarios = async () => {
+      if (!resumen || motivoSalida !== "FALLECIMIENTO") {
+        setBeneficiariosAsignados([]);
+        setBeneficiariosDisponibles([]);
+        return;
+      }
+
+      const data = await getBeneficiariosBySocioId(resumen.idSocio);
+      setBeneficiariosAsignados(data);
+      setBeneficiariosDisponibles([]);
+    };
+
+    loadBeneficiarios();
+  }, [resumen, motivoSalida]);
+
+  const distribucionBeneficiarios = useMemo(() => {
+    if (!resumen) {
+      return {
+        beneficiarios: [] as BeneficiarioDesafiliacionInput[],
+        totalAsignado: 0,
+        saldoPendiente: 0,
+        saldoRestanteOrdinarios: 0,
+      };
+    }
+
+    const isDisponible = (id: number) => beneficiariosDisponibles.includes(id);
+    const ordinarios = beneficiariosAsignados.filter(
+      (beneficiario) => beneficiario.tipoBeneficiario === "ORDINARIO"
+    );
+    const contingentes = beneficiariosAsignados.filter(
+      (beneficiario) => beneficiario.tipoBeneficiario === "CONTINGENTE"
+    );
+    const porcentajeOrdinarioDisponible = ordinarios
+      .filter((beneficiario) => isDisponible(beneficiario.idBeneficiario))
+      .reduce((total, beneficiario) => total + beneficiario.porcentajeBeneficio, 0);
+    const montoOrdinarios = Math.round(
+      resumen.saldoPagado * Math.min(porcentajeOrdinarioDisponible, 100)
+    ) / 100;
+    const saldoRestanteOrdinarios = Math.round(
+      Math.max(resumen.saldoPagado - montoOrdinarios, 0) * 100
+    ) / 100;
+    const beneficiariosOrdinarios = ordinarios
+      .filter((beneficiario) => isDisponible(beneficiario.idBeneficiario))
+      .map((beneficiario) => ({
+        nombre: beneficiario.nombreCompleto,
+        cedula: beneficiario.cedula,
+        montoPagado: Math.round(
+          resumen.saldoPagado * (beneficiario.porcentajeBeneficio / 100) * 100
+        ) / 100,
+        tipoBeneficiario: beneficiario.tipoBeneficiario,
+        porcentajeBeneficio: beneficiario.porcentajeBeneficio,
+      }));
+    const beneficiariosContingentes = contingentes
+      .filter((beneficiario) => isDisponible(beneficiario.idBeneficiario))
+      .map((beneficiario) => ({
+        nombre: beneficiario.nombreCompleto,
+        cedula: beneficiario.cedula,
+        montoPagado: Math.round(
+          saldoRestanteOrdinarios * (beneficiario.porcentajeBeneficio / 100) * 100
+        ) / 100,
+        tipoBeneficiario: beneficiario.tipoBeneficiario,
+        porcentajeBeneficio: beneficiario.porcentajeBeneficio,
+      }));
+    const beneficiarios = [...beneficiariosOrdinarios, ...beneficiariosContingentes].filter(
+      (beneficiario) => beneficiario.montoPagado > 0
+    );
+    const totalAsignado = Math.round(
+      beneficiarios.reduce((total, beneficiario) => total + beneficiario.montoPagado, 0) * 100
+    ) / 100;
+    const saldoPendiente = Math.round(Math.max(resumen.saldoPagado - totalAsignado, 0) * 100) / 100;
+
+    return {
+      beneficiarios,
+      totalAsignado,
+      saldoPendiente,
+      saldoRestanteOrdinarios,
+    };
+  }, [beneficiariosAsignados, beneficiariosDisponibles, resumen]);
 
   const handleCalcular = async () => {
     if (!socioId) {
@@ -100,23 +170,6 @@ export default function DesafiliarSocioPage() {
     }
   };
 
-  const updateBeneficiario = (
-    index: number,
-    field: keyof BeneficiarioDesafiliacionInput,
-    value: string
-  ) => {
-    setBeneficiarios((current) =>
-      current.map((beneficiario, itemIndex) =>
-        itemIndex === index
-          ? {
-              ...beneficiario,
-              [field]: field === "montoPagado" ? Number(value) : value,
-            }
-          : beneficiario
-      )
-    );
-  };
-
   const handleConfirmar = async () => {
     if (!resumen) {
       toast.error("Debe calcular la desafiliación antes de confirmar.");
@@ -129,13 +182,18 @@ export default function DesafiliarSocioPage() {
     }
 
     if (motivoSalida === "FALLECIMIENTO") {
-      if (beneficiarios.length === 0) {
-        toast.error("Debe registrar uno o más beneficiarios.");
+      if (beneficiariosAsignados.length === 0) {
+        toast.error("El socio no tiene beneficiarios asignados. No procede por fallecimiento.");
         return;
       }
 
-      if (totalBeneficiarios !== resumen.saldoPagado) {
-        toast.error("La suma de beneficiarios debe coincidir con el saldo a pagar.");
+      if (distribucionBeneficiarios.beneficiarios.length === 0) {
+        toast.error("Debe marcar al menos un beneficiario disponible.");
+        return;
+      }
+
+      if (distribucionBeneficiarios.saldoPendiente > 0) {
+        toast.error("No puede quedar saldo sin distribuir.");
         return;
       }
     }
@@ -150,7 +208,9 @@ export default function DesafiliarSocioPage() {
       justificacionSalida,
       observacion,
       beneficiarios:
-        motivoSalida === "FALLECIMIENTO" ? beneficiarios : undefined,
+        motivoSalida === "FALLECIMIENTO"
+          ? distribucionBeneficiarios.beneficiarios
+          : undefined,
     });
 
     setConfirming(false);
@@ -162,7 +222,8 @@ export default function DesafiliarSocioPage() {
       setSocios(data);
       setResumen(null);
       setSocioId(0);
-      setBeneficiarios([blankBeneficiario()]);
+      setBeneficiariosAsignados([]);
+      setBeneficiariosDisponibles([]);
     } else {
       toast.error(result.message);
     }
@@ -344,78 +405,21 @@ export default function DesafiliarSocioPage() {
             )}
 
             {motivoSalida === "FALLECIMIENTO" && (
-              <div className="mt-4">
-                <div className="mb-2 flex items-center justify-between">
-                  <h3 className="font-semibold text-gray-900 dark:text-white">
-                    Beneficiarios
-                  </h3>
-                  <button
-                    type="button"
-                    className="rounded bg-gray-800 px-3 py-1 text-sm text-white"
-                    onClick={() =>
-                      setBeneficiarios((current) => [
-                        ...current,
-                        blankBeneficiario(),
-                      ])
-                    }
-                  >
-                    Agregar
-                  </button>
-                </div>
-
-                <div className="flex flex-col gap-2">
-                  {beneficiarios.map((beneficiario, index) => (
-                    <div key={index} className="grid gap-2 md:grid-cols-4">
-                      <input
-                        className="rounded border border-gray-300 p-2 text-gray-900"
-                        placeholder="Nombre"
-                        value={beneficiario.nombre}
-                        onChange={(event) =>
-                          updateBeneficiario(index, "nombre", event.target.value)
-                        }
-                      />
-                      <input
-                        className="rounded border border-gray-300 p-2 text-gray-900"
-                        placeholder="Cédula"
-                        value={beneficiario.cedula}
-                        onChange={(event) =>
-                          updateBeneficiario(index, "cedula", event.target.value)
-                        }
-                      />
-                      <input
-                        type="number"
-                        className="rounded border border-gray-300 p-2 text-gray-900"
-                        placeholder="Monto"
-                        value={beneficiario.montoPagado}
-                        onChange={(event) =>
-                          updateBeneficiario(
-                            index,
-                            "montoPagado",
-                            event.target.value
-                          )
-                        }
-                      />
-                      <button
-                        type="button"
-                        className="rounded bg-red-700 px-3 py-2 text-white disabled:bg-gray-400"
-                        disabled={beneficiarios.length === 1}
-                        onClick={() =>
-                          setBeneficiarios((current) =>
-                            current.filter((_, itemIndex) => itemIndex !== index)
-                          )
-                        }
-                      >
-                        Quitar
-                      </button>
-                    </div>
-                  ))}
-                </div>
-
-                <p className="mt-2 text-sm text-gray-700 dark:text-gray-200">
-                  Total beneficiarios: {currency.format(totalBeneficiarios)} / saldo
-                  a pagar: {currency.format(resumen.saldoPagado)}
-                </p>
-              </div>
+              <BeneficiariosFallecimiento
+                beneficiarios={beneficiariosAsignados}
+                selectedIds={beneficiariosDisponibles}
+                onToggle={(id) =>
+                  setBeneficiariosDisponibles((current) =>
+                    current.includes(id)
+                      ? current.filter((item) => item !== id)
+                      : [...current, id]
+                  )
+                }
+                saldoPagado={resumen.saldoPagado}
+                totalAsignado={distribucionBeneficiarios.totalAsignado}
+                saldoPendiente={distribucionBeneficiarios.saldoPendiente}
+                saldoRestanteOrdinarios={distribucionBeneficiarios.saldoRestanteOrdinarios}
+              />
             )}
           </section>
 
@@ -454,5 +458,136 @@ function Metric({ title, value }: { title: string; value: number }) {
         {currency.format(value)}
       </p>
     </div>
+  );
+}
+
+function BeneficiariosFallecimiento({
+  beneficiarios,
+  selectedIds,
+  onToggle,
+  saldoPagado,
+  totalAsignado,
+  saldoPendiente,
+  saldoRestanteOrdinarios,
+}: {
+  beneficiarios: SocioBeneficiarioOutput[];
+  selectedIds: number[];
+  onToggle: (id: number) => void;
+  saldoPagado: number;
+  totalAsignado: number;
+  saldoPendiente: number;
+  saldoRestanteOrdinarios: number;
+}) {
+  const ordinarios = beneficiarios.filter(
+    (beneficiario) => beneficiario.tipoBeneficiario === "ORDINARIO"
+  );
+  const contingentes = beneficiarios.filter(
+    (beneficiario) => beneficiario.tipoBeneficiario === "CONTINGENTE"
+  );
+
+  if (beneficiarios.length === 0) {
+    return (
+      <div className="mt-4 rounded border border-red-300 bg-red-50 p-4 text-red-800">
+        El socio no tiene beneficiarios asignados. No procede la desafiliación por fallecimiento.
+      </div>
+    );
+  }
+
+  return (
+    <div className="mt-4 flex flex-col gap-4">
+      <p className="text-sm text-gray-700 dark:text-gray-200">
+        Marque los beneficiarios disponibles. Primero se distribuye entre ordinarios; si queda saldo, se puede cubrir con contingentes.
+      </p>
+
+      <BeneficiarioDisponibilidadGroup
+        title="Beneficiarios Ordinarios"
+        beneficiarios={ordinarios}
+        selectedIds={selectedIds}
+        baseMonto={saldoPagado}
+        onToggle={onToggle}
+      />
+
+      <BeneficiarioDisponibilidadGroup
+        title="Beneficiarios Contingentes"
+        beneficiarios={contingentes}
+        selectedIds={selectedIds}
+        baseMonto={saldoRestanteOrdinarios}
+        onToggle={onToggle}
+      />
+
+      <div className="rounded bg-gray-100 p-3 text-sm text-gray-900">
+        <p>Saldo a distribuir: {currency.format(saldoPagado)}</p>
+        <p>Total asignado: {currency.format(totalAsignado)}</p>
+        <p className={saldoPendiente === 0 ? "font-semibold text-green-700" : "font-semibold text-red-700"}>
+          Saldo pendiente: {currency.format(saldoPendiente)}
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function BeneficiarioDisponibilidadGroup({
+  title,
+  beneficiarios,
+  selectedIds,
+  baseMonto,
+  onToggle,
+}: {
+  title: string;
+  beneficiarios: SocioBeneficiarioOutput[];
+  selectedIds: number[];
+  baseMonto: number;
+  onToggle: (id: number) => void;
+}) {
+  return (
+    <section className="rounded border border-gray-200 p-3">
+      <h3 className="mb-2 font-semibold text-gray-900 dark:text-white">{title}</h3>
+      <div className="overflow-x-auto">
+        <table className="w-full table-auto text-sm">
+          <thead>
+            <tr className="border-b text-left text-gray-700 dark:text-gray-200">
+              <th className="p-2">Disponible</th>
+              <th className="p-2">Cédula</th>
+              <th className="p-2">Nombre</th>
+              <th className="p-2">Parentesco</th>
+              <th className="p-2">%</th>
+              <th className="p-2">Monto</th>
+            </tr>
+          </thead>
+          <tbody>
+            {beneficiarios.map((beneficiario) => {
+              const selected = selectedIds.includes(beneficiario.idBeneficiario);
+              const monto = selected
+                ? Math.round(baseMonto * (beneficiario.porcentajeBeneficio / 100) * 100) / 100
+                : 0;
+
+              return (
+                <tr key={beneficiario.idBeneficiario} className="border-b">
+                  <td className="p-2">
+                    <input
+                      type="checkbox"
+                      checked={selected}
+                      onChange={() => onToggle(beneficiario.idBeneficiario)}
+                    />
+                  </td>
+                  <td className="p-2">{beneficiario.cedula}</td>
+                  <td className="p-2">{beneficiario.nombreCompleto}</td>
+                  <td className="p-2">{beneficiario.parentesco}</td>
+                  <td className="p-2">{beneficiario.porcentajeBeneficio}%</td>
+                  <td className="p-2">{currency.format(monto)}</td>
+                </tr>
+              );
+            })}
+            {beneficiarios.length === 0 && (
+              <tr>
+                <td className="p-2 text-gray-600 dark:text-gray-200" colSpan={6}>
+                  No hay beneficiarios de este tipo.
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+    </section>
   );
 }

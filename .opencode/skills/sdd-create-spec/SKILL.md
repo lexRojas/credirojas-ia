@@ -20,4 +20,6 @@ Usar esta skill cuando el usuario pida crear o iniciar una nueva especificación
 
 - No tocar código de la app al crear una spec.
 - No inventar requisitos; marcar dudas en `Preguntas abiertas`.
+- Mostrar al usuario el resultado de cada fase del SDD generada o actualizada (`spec.md`, `plan.md`, `tasks.md`, `decisions.md` y `validation.md`) con un resumen breve de qué quedó definido en cada archivo.
+- Enumerar las preguntas abiertas con números consecutivos (`1.`, `2.`, `3.`, ...) para que el usuario pueda responder cada una haciendo referencia al número.
 - Una spec debe cubrir una sola funcionalidad o cambio relevante.
