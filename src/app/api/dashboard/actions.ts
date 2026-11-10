@@ -172,6 +172,8 @@ export const getSocioDashboardData = async (
 type Periodo = {
   inicio?: string; // ISO "YYYY-MM-DD" también funciona si tus fechas son String (ISO)
   fin?: string;
+  periodoAcciones?: string;
+  mesAcciones?: string;
 };
 
 /**
@@ -182,11 +184,33 @@ type Periodo = {
  *
  * Si usas otros nombres (ej. PagosAcciones, Loan, LoanPayment, etc.) cambia abajo.
  */
-export async function obtenerResumenPeriodo({ inicio, fin }: Periodo={}) {
+export async function obtenerResumenPeriodo({
+  inicio,
+  fin,
+  periodoAcciones,
+  mesAcciones,
+}: Periodo = {}) {
   inicio = inicio ?? "2000-01-01";
   fin = fin ?? "2100-12-31";
 
   console.log(inicio, fin);
+
+  const accionesWhere: Prisma.AccionWhereInput = {};
+  if (periodoAcciones !== undefined) {
+    accionesWhere.periodo = periodoAcciones;
+  }
+  if (mesAcciones !== undefined) {
+    const mesNumerico = Number(mesAcciones);
+    if (!Number.isInteger(mesNumerico) || mesNumerico < 1 || mesNumerico > 12) {
+      throw new Error("El mes para conciliar acciones debe estar entre 1 y 12.");
+    }
+
+    const mesSinCero = String(mesNumerico);
+    const mesConCero = mesSinCero.padStart(2, "0");
+    accionesWhere.mes = {
+      in: mesSinCero === mesConCero ? [mesSinCero] : [mesSinCero, mesConCero],
+    };
+  }
 
   // Helper para convertir Prisma.Decimal | number | null -> number
   const toNum = (v: Prisma.Decimal | number | null | undefined) =>
@@ -210,15 +234,13 @@ export async function obtenerResumenPeriodo({ inicio, fin }: Periodo={}) {
 
       // ====== TOTAL MONTO POR ACCIONES y CANTIDAD DE ACCIONES ======
       prisma.accion.aggregate({
-        // Cambia "accionPago" por tu modelo real de pagos de acciones
         _sum: {
           monto_colones: true, // total del monto pagado por socios en acciones
           cantidadAcciones: true, // total de acciones pagadas en general (cantidad/unidades)
         },
-        where: {
-          // Si tu fecha es String ISO ("YYYY-MM-DD"), gte/lte funciona igualmente
-          fecha: { gte: inicio as string, lte: fin as string },
-        },
+        // Las acciones se concilian por periodo/mes contable, no por fecha.
+        // Sin filtros (ALL), se incluyen también registros con periodo o mes nulos.
+        where: accionesWhere,
       }),
 
       // ====== TOTAL MONTOS DE PRÉSTAMOS OTORGADOS ======

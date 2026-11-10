@@ -1,7 +1,7 @@
 'use client'
 
 import { obtenerResumenPeriodo } from "@/app/api/dashboard/actions";
-import { toDateOnly } from "@/lib/date";
+import { toDateOnly, todayCR } from "@/lib/date";
 import { useEffect, useMemo, useState } from "react";
 
 interface Conciliacion {
@@ -29,19 +29,16 @@ const MESES = [
   "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"
 ];
 
-const obtenerFechasAnioActual = (): { inicio: string; fin: string } => {
-  const fechaActual = new Date();
-  const inicio = new Date(fechaActual.getFullYear(), 0, 1);
-  const fin = new Date(fechaActual.getFullYear(), 11, 31);
+const obtenerFechasAnioActual = (anioActual: number): { inicio: string; fin: string } => {
+  const inicio = new Date(anioActual, 0, 1);
+  const fin = new Date(anioActual, 11, 31);
   return {
     inicio: toDateOnly(inicio),
     fin: toDateOnly(fin)
   };
 };
 
-const obtenerPrimerUltimoDiaMes = (mes: number): { primerDia: string; ultimoDia: string } => {
-  const fechaActual = new Date();
-  const anioActual = fechaActual.getFullYear();
+const obtenerPrimerUltimoDiaMes = (anioActual: number, mes: number): { primerDia: string; ultimoDia: string } => {
   const primerDia = new Date(anioActual, mes - 1, 1);
   const ultimoDia = new Date(anioActual, mes, 0);
   return {
@@ -67,14 +64,22 @@ const Page = () => {
         setCargando(true);
 
         // Cargar YTD
-        const { inicio, fin } = obtenerFechasAnioActual();
-        const ytdPromise = obtenerResumenPeriodo({ inicio, fin });
+        const anioActual = Number(todayCR().slice(0, 4));
+        const periodoAcciones = String(anioActual);
+        const { inicio, fin } = obtenerFechasAnioActual(anioActual);
+        const ytdPromise = obtenerResumenPeriodo({ inicio, fin, periodoAcciones });
         const longTimePromise = obtenerResumenPeriodo();
 
         // Cargar 12 meses en paralelo
         const mensualesPromises = Array.from({ length: 12 }, (_, i) => {
-          const { primerDia, ultimoDia } = obtenerPrimerUltimoDiaMes(i + 1);
-          return obtenerResumenPeriodo({ inicio: primerDia, fin: ultimoDia });
+          const mesAcciones = String(i + 1);
+          const { primerDia, ultimoDia } = obtenerPrimerUltimoDiaMes(anioActual, i + 1);
+          return obtenerResumenPeriodo({
+            inicio: primerDia,
+            fin: ultimoDia,
+            periodoAcciones,
+            mesAcciones,
+          });
         });
 
         const [all, ytd, ...mensuales] = await Promise.all([longTimePromise, ytdPromise, ...mensualesPromises]);
