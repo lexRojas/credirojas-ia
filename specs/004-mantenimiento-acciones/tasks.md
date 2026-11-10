@@ -1,0 +1,22 @@
+# Tasks: Mantenimiento de Acciones
+
+- [x] Aprobar spec y alcance.
+- [x] Aprobar plan técnico.
+- [x] Renombrar la opción en `src/components/Menu.tsx`.
+- [x] Implementar consulta/selección de un socio activo.
+- [x] Sustituir la pantalla actual por la tabla de mantenimiento.
+- [x] Ordenar las acciones por `fecha` descendente e `idAccion` descendente como desempate.
+- [x] Mostrar columnas y totales de acciones y monto.
+- [x] Implementar filtros combinables de periodo, mes y rango de fechas.
+- [x] Implementar modal de edición.
+- [x] Validar coherencia entre periodo, mes y fecha en cliente y servidor.
+- [x] Recalcular el monto con cantidad y valor vigente de una acción.
+- [x] Implementar actualización por `idAccion`.
+- [x] Implementar modal de confirmación de eliminación.
+- [x] Implementar eliminación por `idAccion`.
+- [x] Refrescar la tabla después de editar o eliminar.
+- [x] Manejar estados de carga, vacío y error.
+- [x] Ejecutar `npm run lint`.
+- [x] Ejecutar `npx tsc --noEmit`.
+- [x] Ejecutar `npm run build`.
+- [x] Registrar evidencias en `validation.md`.

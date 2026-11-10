@@ -1,257 +1,568 @@
 'use client'
 
-import { getVistaEstadoAcciones } from "@/app/api/acciones/actions"
-import jsonToExcel from "@/lib/excel"
-import { sociosConAcciones_type } from "@/types/types"
-import React from "react"
-import { useEffect, useState } from "react"
+import {
+  actualizarAccion,
+  eliminarAccion,
+  getAccionesMantenimiento,
+  getSociosActivosAcciones,
+  type ActualizarAccionInput,
+  type SocioActivoAcciones,
+} from "@/app/api/acciones/actions";
+import { getVariableValue } from "@/app/api/variables/actions";
+import type { Accion } from "@/types/types";
+import { useEffect, useMemo, useState } from "react";
+import { toast } from "react-toastify";
 
+type Filtros = {
+  periodo: string;
+  mes: string;
+  fechaDesde: string;
+  fechaHasta: string;
+};
 
+const FILTROS_VACIOS: Filtros = {
+  periodo: "",
+  mes: "",
+  fechaDesde: "",
+  fechaHasta: "",
+};
 
-export default function BrowseSociosAcciones() {
+const MESES = [
+  "Enero",
+  "Febrero",
+  "Marzo",
+  "Abril",
+  "Mayo",
+  "Junio",
+  "Julio",
+  "Agosto",
+  "Septiembre",
+  "Octubre",
+  "Noviembre",
+  "Diciembre",
+];
 
+const formatoCRC = new Intl.NumberFormat("es-CR", {
+  style: "currency",
+  currency: "CRC",
+});
 
+function getErrorEdicion(input: ActualizarAccionInput): string | null {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(input.fecha)) {
+    return "Seleccione una fecha válida.";
+  }
 
+  const [anio, mes] = input.fecha.split("-").map(Number);
+  if (input.periodo !== String(anio)) {
+    return "El periodo debe coincidir con el año de la fecha.";
+  }
+  if (input.mes !== String(mes)) {
+    return "El mes debe coincidir con el mes de la fecha.";
+  }
+  if (!Number.isInteger(input.cantidadAcciones) || input.cantidadAcciones <= 0) {
+    return "La cantidad de acciones debe ser un entero mayor que cero.";
+  }
 
-    const [data, setData] = useState<sociosConAcciones_type[]>([])
-    const [dataFiltered, setDataFiltered] = useState<sociosConAcciones_type[]>([])
-    const [currentPage, setCurrentPage] = useState(1);
+  return null;
+}
 
+export default function MantenimientoAccionesPage() {
+  const [socios, setSocios] = useState<SocioActivoAcciones[]>([]);
+  const [busquedaSocio, setBusquedaSocio] = useState("");
+  const [socioId, setSocioId] = useState<number | null>(null);
+  const [acciones, setAcciones] = useState<Accion[]>([]);
+  const [filtros, setFiltros] = useState<Filtros>(FILTROS_VACIOS);
+  const [montoAccion, setMontoAccion] = useState(0);
+  const [cargandoInicial, setCargandoInicial] = useState(true);
+  const [cargandoAcciones, setCargandoAcciones] = useState(false);
+  const [accionEditando, setAccionEditando] = useState<ActualizarAccionInput | null>(null);
+  const [accionEliminando, setAccionEliminando] = useState<Accion | null>(null);
+  const [procesando, setProcesando] = useState(false);
 
-    const itemsPerPage = 10;
-
-
-
-    useEffect(() => {
-
-        const fetchEstadosCuenta = async () => {
-            try {
-                const estados = await getVistaEstadoAcciones()
-                setData(estados!)
-                setDataFiltered(estados!)
-            } catch (error) {
-                console.log(error)
-            }
-        }
-        fetchEstadosCuenta()
-    }, [])
-
-
-
-    // Calcula los índices de los elementos a mostrar según la página actual
-    const indexOfLastItem = currentPage * itemsPerPage;
-    const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-    const currentItems = dataFiltered.slice(indexOfFirstItem, indexOfLastItem);
-
-    // Maneja el cambio de página
-    const handleNext = () => {
-        if (currentPage < Math.ceil(data.length / itemsPerPage)) {
-            setCurrentPage(currentPage + 1);
-        }
+  useEffect(() => {
+    const cargarInicial = async () => {
+      try {
+        const [sociosActivos, variableMonto] = await Promise.all([
+          getSociosActivosAcciones(),
+          getVariableValue(4),
+        ]);
+        setSocios(sociosActivos);
+        setMontoAccion(variableMonto.valor);
+      } catch (error) {
+        console.error(error);
+        toast.error("No se pudo cargar la información para el mantenimiento de acciones.");
+      } finally {
+        setCargandoInicial(false);
+      }
     };
 
-    const handlePrev = () => {
-        if (currentPage > 1) {
-            setCurrentPage(currentPage - 1);
+    cargarInicial();
+  }, []);
+
+  useEffect(() => {
+    let vigente = true;
+
+    const cargarAcciones = async () => {
+      if (!socioId) {
+        setAcciones([]);
+        return;
+      }
+
+      setCargandoAcciones(true);
+      try {
+        const resultado = await getAccionesMantenimiento(socioId);
+        if (vigente) setAcciones(resultado);
+      } catch (error) {
+        console.error(error);
+        if (vigente) {
+          setAcciones([]);
+          toast.error("No se pudieron cargar las acciones del socio.");
         }
+      } finally {
+        if (vigente) setCargandoAcciones(false);
+      }
     };
 
+    cargarAcciones();
+    return () => {
+      vigente = false;
+    };
+  }, [socioId]);
 
-    const handleFilter = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const filter = e.target.value;
-        const filteredData = data.filter((socio) =>
-            socio.nombre.toLowerCase().includes(filter.toLowerCase())
-        );
-        setDataFiltered(filteredData)
-        setCurrentPage(1)
+  const sociosFiltrados = useMemo(() => {
+    const texto = busquedaSocio.trim().toLowerCase();
+    if (!texto) return socios;
+    return socios.filter(
+      (socio) =>
+        socio.nombre.toLowerCase().includes(texto) ||
+        socio.cedula.toLowerCase().includes(texto)
+    );
+  }, [busquedaSocio, socios]);
 
+  const periodos = useMemo(
+    () =>
+      Array.from(
+        new Set(acciones.map((accion) => accion.periodo).filter((valor): valor is string => Boolean(valor)))
+      ).sort((a, b) => b.localeCompare(a)),
+    [acciones]
+  );
+
+  const rangoInvalido = Boolean(
+    filtros.fechaDesde && filtros.fechaHasta && filtros.fechaDesde > filtros.fechaHasta
+  );
+
+  const accionesFiltradas = useMemo(() => {
+    if (rangoInvalido) return [];
+
+    return acciones.filter((accion) => {
+      if (filtros.periodo && accion.periodo !== filtros.periodo) return false;
+      if (filtros.mes && accion.mes !== filtros.mes) return false;
+      if (filtros.fechaDesde && accion.fecha < filtros.fechaDesde) return false;
+      if (filtros.fechaHasta && accion.fecha > filtros.fechaHasta) return false;
+      return true;
+    });
+  }, [acciones, filtros, rangoInvalido]);
+
+  const socioSeleccionado = socios.find((socio) => socio.idSocio === socioId) ?? null;
+
+  const seleccionarSocio = (valor: string) => {
+    const nuevoSocioId = valor ? Number(valor) : null;
+    setSocioId(nuevoSocioId);
+    setFiltros(FILTROS_VACIOS);
+    setAccionEditando(null);
+    setAccionEliminando(null);
+  };
+
+  const refrescarAcciones = async () => {
+    if (!socioId) return;
+    const resultado = await getAccionesMantenimiento(socioId);
+    setAcciones(resultado);
+  };
+
+  const abrirEdicion = (accion: Accion) => {
+    setAccionEditando({
+      idAccion: accion.idAccion,
+      periodo: accion.periodo ?? "",
+      mes: accion.mes ?? "",
+      fecha: accion.fecha,
+      cantidadAcciones: accion.cantidadAcciones,
+    });
+  };
+
+  const cambiarFechaEdicion = (fecha: string) => {
+    setAccionEditando((actual) => {
+      if (!actual) return actual;
+      const [periodo = "", mesConCero = ""] = fecha.split("-");
+      const mes = mesConCero ? String(Number(mesConCero)) : "";
+      return { ...actual, fecha, periodo, mes };
+    });
+  };
+
+  const guardarEdicion = async () => {
+    if (!accionEditando) return;
+    const error = getErrorEdicion(accionEditando);
+    if (error) {
+      toast.error(error);
+      return;
     }
 
+    setProcesando(true);
+    try {
+      const resultado = await actualizarAccion(accionEditando);
+      if (!resultado.success) {
+        toast.error(resultado.message);
+        return;
+      }
 
-
-
-
-
-    const generarReportEmail = async (socio: sociosConAcciones_type) => {
- 
-
-        try {
-
-            const response = await fetch('/api/email/estado_acciones', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ data: socio }),
-            });
-
-            if (response.ok) {
-                console.log("enviado!!!!")
-            }
-
-        }
-        catch (error) {
-            console.log(error)
-        }
-
-
+      await refrescarAcciones();
+      setAccionEditando(null);
+      toast.success(resultado.message);
+    } catch (error) {
+      console.error(error);
+      toast.error("No se pudo actualizar la acción.");
+    } finally {
+      setProcesando(false);
     }
+  };
 
-    const generarReportXLS = async (socio: sociosConAcciones_type) => {
-        console.log(socio)
+  const confirmarEliminacion = async () => {
+    if (!accionEliminando) return;
 
-        try {
-            // Iterar sobre cada socio
-            const accionesAplanadas = socio.acciones.map(accion => ({
-                idSocio: socio.idSocio,
-                nombre: socio.nombre,
-                cedula: socio.cedula,
-                correo: socio.correo,
-                idAccion: accion.idAccion,
-                fecha: accion.fecha,
-                cantidadAcciones: accion.cantidadAcciones,
-                periodo: accion.periodo,
-                pesoMultiplicador: accion.pesoMultiplicador,
-                monto_colones: accion.monto_colones,
-                mes: accion.mes,
-            }));
+    setProcesando(true);
+    try {
+      const resultado = await eliminarAccion(accionEliminando.idAccion);
+      if (!resultado.success) {
+        toast.error(resultado.message);
+        return;
+      }
 
-            jsonToExcel(accionesAplanadas, "acciones_x_socio.xls")
-
-        }
-        catch (error) {
-            console.log(error)
-        }
-
-
+      await refrescarAcciones();
+      setAccionEliminando(null);
+      toast.success(resultado.message);
+    } catch (error) {
+      console.error(error);
+      toast.error("No se pudo eliminar la acción.");
+    } finally {
+      setProcesando(false);
     }
+  };
 
-    return (
+  const totalCantidad = accionesFiltradas.reduce(
+    (total, accion) => total + accion.cantidadAcciones,
+    0
+  );
+  const totalMonto = accionesFiltradas.reduce(
+    (total, accion) => total + accion.monto_colones,
+    0
+  );
+  const errorEdicion = accionEditando ? getErrorEdicion(accionEditando) : null;
 
-        <div className="container dark:bg-amber-100/90  pb-3  flex flex-col items-center justify-center p-2 w-full  pt-2.5">
-            <div className="mb-5 w-full md:w-1/3 md:mr-auto md:ml-0 ">
-                <label
-                    className="block text-left text-sm/6 font-medium text-gray-900"
-                    htmlFor="findfilter"
-                >
-                    Filtrar por nombre
-                </label>
-                <div className="grid grid-cols-1 ">
-                    <input
-                        type="search"
-                        name="findfilter"
-                        className=" col-start-1 row-start-1 appearance-none  bg-white py-1.5 pr-8 pl-3 text-base text-gray-900 outline-1 -outline-offset-1 outline-gray-300 focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-600 sm:text-sm/6"
-                        placeholder="Buscar Socio"
-                        onChange={handleFilter}
-                    />
-                    <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        viewBox="0 0 24 24"
-                        fill="currentColor"
-                        className=" col-start-1 row-start-1 mr-2 size-6 self-center justify-self-end  pointer-events-none  text-gray-500 sm:size-6">
-                        <path fillRule="evenodd" d="M10.5 3.75a6.75 6.75 0 1 0 0 13.5 6.75 6.75 0 0 0 0-13.5ZM2.25 10.5a8.25 8.25 0 1 1 14.59 5.28l4.69 4.69a.75.75 0 1 1-1.06 1.06l-4.69-4.69A8.25 8.25 0 0 1 2.25 10.5Z" clipRule="evenodd" />
-                    </svg>
-                </div>
+  if (cargandoInicial) {
+    return <div className="p-4">Cargando mantenimiento de acciones...</div>;
+  }
 
+  return (
+    <div className="w-full p-3 text-gray-900">
+      <h1 className="mb-4 text-xl font-bold">Mantenimiento de Acciones</h1>
 
-
-
-
-            </div>
-
-
-
-            {/* Tabla de estado de cuenta */}
-            <div className="table-container dark:text-black w-full sm:max-w-3xl">
-                {currentItems.map((socio) => (
-                    <div key={socio.idSocio} className="bg-gray-100 mb-6 border rounded-lg shadow-sm overflow-hidden">
-                        {/* Nivel 1: Socio */}
-                        <div className="bg-gray-100 p-2  flex  font-extrabold ">
-                            <div className="flex flex-1 justify-center">
-                                <h1>ESTADO DE CUENTA DEL SOCIO</h1>
-                            </div>
-                            <div className="flex w-40    justify-center gap-1">
-                                <div className="w-20 flex justify-end">
-                                    <button
-                                        className="w-full bg-blue-950 hover:bg-blue-400 text-white hover:text-black  rounded-xl py-1 px-2 disabled:bg-gray-300"
-                                        onClick={() => generarReportEmail(socio)}
-                                    > Send </button>
-                                </div>
-                                <div className="w-20 flex justify-end">
-                                    <button
-                                        className="w-full bg-blue-950 hover:bg-blue-400 text-white hover:text-black  rounded-xl py-1 px-2 disabled:bg-gray-300"
-                                        onClick={() => generarReportXLS(socio)}
-                                    > XLS </button>
-                                </div>
-                            </div>
-                        </div>
-                        <div className="flex p-1 pl-2 font-bold gap-2">
-                            <p>{socio.cedula}</p>
-                            <p>&rArr;</p>
-                            <p >{socio.nombre}</p>
-                        </div>
-
-
-                        {/* Nivel 2: Préstamos */}
-                        <table className="table-auto w-full border-collapse">
-                            <thead>
-                                <tr className="bg-blue-950/60 text-left  text-white text-sm font-medium">
-                                    <th className="p-2">ID Accion</th>
-                                    <th className="p-2">Periodo</th>
-                                    <th className="p-2">Mes</th>
-                                    <th className="p-2">Fecha</th>
-                                    <th className="p-2">Cantidad Acciones</th>
-                                    <th className="p-2">Monto</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {socio.acciones.map((a) => (
-                                    <tr key={a.idAccion}
-                                        className="bg-blue-200 hover:bg-gray-100 cursor-pointer">
-                                        <td className="p-2">{a.idAccion}</td>
-                                        <td className="p-2">{a.periodo}</td>
-                                        <td className="p-2">{a.mes}</td>
-                                        <td className="p-2">{a.fecha}</td>
-                                        <td className="p-2 text-center">{a.cantidadAcciones}</td>
-                                        <td className="p-2">{a.monto_colones.toLocaleString("es-CR", { style: "currency", currency: "CRC" })}</td>
-                                    </tr>
-
-                                ))}
-
-                                <tr className="bg-yellow-100 ">
-                                    <td
-                                        colSpan={4}
-                                        className=" font-bold text-right p-2">TOTAL DE ACCIONES Y MONTO  &rArr; </td>
-
-                                    <td className="p-2 text-center font-bold">{socio.acciones.reduce((sumatoria, item) => (sumatoria + item.cantidadAcciones), 0)}</td>
-                                    <td className="p-2 font-bold">{socio.acciones.reduce((sumatoria, item) => (sumatoria + item.monto_colones), 0).toLocaleString("es-CR", { style: "currency", currency: "CRC" })}</td>
-                                </tr>
-
-
-
-
-                            </tbody>
-                        </table>
-                    </div>
+      <section className="mb-5 rounded-lg border border-gray-300 bg-gray-50 p-4">
+        <h2 className="mb-3 font-semibold">Seleccionar socio activo</h2>
+        {socios.length === 0 ? (
+          <p>No existen socios activos disponibles.</p>
+        ) : (
+          <div className="grid gap-3 md:grid-cols-2">
+            <label className="block">
+              <span className="mb-1 block text-sm font-medium">Buscar por nombre o cédula</span>
+              <input
+                type="search"
+                value={busquedaSocio}
+                onChange={(event) => setBusquedaSocio(event.target.value)}
+                className="w-full rounded border border-gray-300 bg-white px-3 py-2"
+                placeholder="Buscar socio"
+              />
+            </label>
+            <label className="block">
+              <span className="mb-1 block text-sm font-medium">Socio</span>
+              <select
+                value={socioId ?? ""}
+                onChange={(event) => seleccionarSocio(event.target.value)}
+                className="w-full rounded border border-gray-300 bg-white px-3 py-2"
+              >
+                <option value="">Seleccione un socio</option>
+                {sociosFiltrados.map((socio) => (
+                  <option key={socio.idSocio} value={socio.idSocio}>
+                    {socio.cedula} - {socio.nombre}
+                  </option>
                 ))}
-            </div>
+              </select>
+            </label>
+          </div>
+        )}
+      </section>
 
-            {/* Paginación */}
-            <div className="flex  w-full justify-center items-center gap-2 mt-2">
-                <button onClick={handlePrev} disabled={currentPage === 1}>
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="size-6">
-                        <path d="M9.195 18.44c1.25.714 2.805-.189 2.805-1.629v-2.34l6.945 3.968c1.25.715 2.805-.188 2.805-1.628V8.69c0-1.44-1.555-2.343-2.805-1.628L12 11.029v-2.34c0-1.44-1.555-2.343-2.805-1.628l-7.108 4.061c-1.26.72-1.26 2.536 0 3.256l7.108 4.061Z" />
-                    </svg>
-                </button>
-                <span >Página {currentPage} de {Math.ceil(data.length / itemsPerPage)}</span>
-                <button onClick={handleNext} disabled={currentPage === Math.ceil(data.length / itemsPerPage)}>
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="size-6">
-                        <path d="M5.055 7.06C3.805 6.347 2.25 7.25 2.25 8.69v8.122c0 1.44 1.555 2.343 2.805 1.628L12 14.471v2.34c0 1.44 1.555 2.343 2.805 1.628l7.108-4.061c1.26-.72 1.26-2.536 0-3.256l-7.108-4.061C13.555 6.346 12 7.249 12 8.689v2.34L5.055 7.061Z" />
-                    </svg>
-                </button>
-            </div>
+      {!socioSeleccionado ? (
+        <div className="rounded border border-blue-200 bg-blue-50 p-4">
+          Seleccione un socio activo para consultar sus acciones.
         </div>
-    )
+      ) : (
+        <>
+          <section className="mb-4 rounded-lg border border-gray-300 bg-white p-4">
+            <h2 className="mb-3 font-semibold">
+              Acciones de {socioSeleccionado.cedula} - {socioSeleccionado.nombre}
+            </h2>
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+              <label>
+                <span className="mb-1 block text-sm font-medium">Periodo</span>
+                <select
+                  value={filtros.periodo}
+                  onChange={(event) => setFiltros({ ...filtros, periodo: event.target.value })}
+                  className="w-full rounded border border-gray-300 px-3 py-2"
+                >
+                  <option value="">Todos</option>
+                  {periodos.map((periodo) => (
+                    <option key={periodo} value={periodo}>{periodo}</option>
+                  ))}
+                </select>
+              </label>
+              <label>
+                <span className="mb-1 block text-sm font-medium">Mes</span>
+                <select
+                  value={filtros.mes}
+                  onChange={(event) => setFiltros({ ...filtros, mes: event.target.value })}
+                  className="w-full rounded border border-gray-300 px-3 py-2"
+                >
+                  <option value="">Todos</option>
+                  {MESES.map((nombre, index) => (
+                    <option key={nombre} value={String(index + 1)}>{nombre}</option>
+                  ))}
+                </select>
+              </label>
+              <label>
+                <span className="mb-1 block text-sm font-medium">Fecha desde</span>
+                <input
+                  type="date"
+                  value={filtros.fechaDesde}
+                  onChange={(event) => setFiltros({ ...filtros, fechaDesde: event.target.value })}
+                  className="w-full rounded border border-gray-300 px-3 py-2"
+                />
+              </label>
+              <label>
+                <span className="mb-1 block text-sm font-medium">Fecha hasta</span>
+                <input
+                  type="date"
+                  value={filtros.fechaHasta}
+                  onChange={(event) => setFiltros({ ...filtros, fechaHasta: event.target.value })}
+                  className="w-full rounded border border-gray-300 px-3 py-2"
+                />
+              </label>
+              <div className="flex items-end">
+                <button
+                  type="button"
+                  onClick={() => setFiltros(FILTROS_VACIOS)}
+                  className="w-full rounded bg-gray-600 px-3 py-2 text-white hover:bg-gray-700"
+                >
+                  Limpiar filtros
+                </button>
+              </div>
+            </div>
+            {rangoInvalido && (
+              <p className="mt-2 text-sm font-medium text-red-600">
+                La fecha desde no puede ser posterior a la fecha hasta.
+              </p>
+            )}
+          </section>
 
+          {cargandoAcciones ? (
+            <p>Cargando acciones...</p>
+          ) : (
+            <div className="overflow-x-auto rounded-lg border border-gray-300">
+              <table className="min-w-full border-collapse text-sm">
+                <thead className="bg-blue-950/80 text-left text-white">
+                  <tr>
+                    <th className="p-2">Id Acción</th>
+                    <th className="p-2">Periodo</th>
+                    <th className="p-2">Mes</th>
+                    <th className="p-2">Fecha</th>
+                    <th className="p-2 text-right">Cantidad de acciones</th>
+                    <th className="p-2 text-right">Monto</th>
+                    <th className="p-2 text-center">Acciones</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {accionesFiltradas.length === 0 ? (
+                    <tr>
+                      <td colSpan={7} className="p-5 text-center text-gray-600">
+                        {acciones.length === 0
+                          ? "El socio no tiene acciones registradas."
+                          : "No hay acciones que coincidan con los filtros."}
+                      </td>
+                    </tr>
+                  ) : (
+                    accionesFiltradas.map((accion) => (
+                      <tr key={accion.idAccion} className="border-t border-gray-200 hover:bg-blue-50">
+                        <td className="p-2">{accion.idAccion}</td>
+                        <td className="p-2">{accion.periodo ?? "-"}</td>
+                        <td className="p-2">{accion.mes ?? "-"}</td>
+                        <td className="p-2">{accion.fecha}</td>
+                        <td className="p-2 text-right">{accion.cantidadAcciones}</td>
+                        <td className="p-2 text-right">{formatoCRC.format(accion.monto_colones)}</td>
+                        <td className="p-2">
+                          <div className="flex justify-center gap-2">
+                            <button
+                              type="button"
+                              onClick={() => abrirEdicion(accion)}
+                              className="rounded bg-blue-700 px-3 py-1 text-white hover:bg-blue-800"
+                            >
+                              Editar
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setAccionEliminando(accion)}
+                              className="rounded bg-red-700 px-3 py-1 text-white hover:bg-red-800"
+                            >
+                              Eliminar
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+                {accionesFiltradas.length > 0 && (
+                  <tfoot className="border-t bg-yellow-100 font-bold">
+                    <tr>
+                      <td colSpan={4} className="p-2 text-right">Totales filtrados:</td>
+                      <td className="p-2 text-right">{totalCantidad}</td>
+                      <td className="p-2 text-right">{formatoCRC.format(totalMonto)}</td>
+                      <td />
+                    </tr>
+                  </tfoot>
+                )}
+              </table>
+            </div>
+          )}
+        </>
+      )}
 
+      {accionEditando && socioSeleccionado && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" role="dialog" aria-modal="true" aria-labelledby="titulo-editar-accion">
+          <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-lg bg-white p-5 shadow-xl">
+            <h2 id="titulo-editar-accion" className="mb-4 text-lg font-bold">Editar acción</h2>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <label>
+                <span className="mb-1 block text-sm font-medium">Id Acción</span>
+                <input value={accionEditando.idAccion} disabled className="w-full rounded border bg-gray-100 px-3 py-2" />
+              </label>
+              <label>
+                <span className="mb-1 block text-sm font-medium">Id Socio</span>
+                <input value={socioSeleccionado.idSocio} disabled className="w-full rounded border bg-gray-100 px-3 py-2" />
+              </label>
+              <label>
+                <span className="mb-1 block text-sm font-medium">Periodo</span>
+                <input
+                  inputMode="numeric"
+                  value={accionEditando.periodo}
+                  onChange={(event) => setAccionEditando({ ...accionEditando, periodo: event.target.value })}
+                  className="w-full rounded border border-gray-300 px-3 py-2"
+                />
+              </label>
+              <label>
+                <span className="mb-1 block text-sm font-medium">Mes</span>
+                <select
+                  value={accionEditando.mes}
+                  onChange={(event) => setAccionEditando({ ...accionEditando, mes: event.target.value })}
+                  className="w-full rounded border border-gray-300 px-3 py-2"
+                >
+                  <option value="">Seleccione</option>
+                  {MESES.map((nombre, index) => (
+                    <option key={nombre} value={String(index + 1)}>{nombre}</option>
+                  ))}
+                </select>
+              </label>
+              <label>
+                <span className="mb-1 block text-sm font-medium">Fecha</span>
+                <input
+                  type="date"
+                  value={accionEditando.fecha}
+                  onChange={(event) => cambiarFechaEdicion(event.target.value)}
+                  className="w-full rounded border border-gray-300 px-3 py-2"
+                />
+              </label>
+              <label>
+                <span className="mb-1 block text-sm font-medium">Cantidad de acciones</span>
+                <input
+                  type="number"
+                  min={1}
+                  step={1}
+                  value={accionEditando.cantidadAcciones}
+                  onChange={(event) => setAccionEditando({
+                    ...accionEditando,
+                    cantidadAcciones: Number(event.target.value),
+                  })}
+                  className="w-full rounded border border-gray-300 px-3 py-2"
+                />
+              </label>
+              <label className="sm:col-span-2">
+                <span className="mb-1 block text-sm font-medium">Monto recalculado</span>
+                <input
+                  value={formatoCRC.format(accionEditando.cantidadAcciones * montoAccion || 0)}
+                  disabled
+                  className="w-full rounded border bg-gray-100 px-3 py-2"
+                />
+              </label>
+            </div>
+            {errorEdicion && <p className="mt-3 text-sm font-medium text-red-600">{errorEdicion}</p>}
+            <div className="mt-5 flex justify-end gap-2">
+              <button
+                type="button"
+                disabled={procesando}
+                onClick={() => setAccionEditando(null)}
+                className="rounded bg-gray-500 px-4 py-2 text-white disabled:opacity-50"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                disabled={procesando || Boolean(errorEdicion) || montoAccion <= 0}
+                onClick={guardarEdicion}
+                className="rounded bg-blue-700 px-4 py-2 text-white disabled:opacity-50"
+              >
+                {procesando ? "Guardando..." : "Guardar"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {accionEliminando && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" role="dialog" aria-modal="true" aria-labelledby="titulo-eliminar-accion">
+          <div className="w-full max-w-md rounded-lg bg-white p-5 shadow-xl">
+            <h2 id="titulo-eliminar-accion" className="mb-3 text-lg font-bold">Confirmar eliminación</h2>
+            <p>
+              ¿Desea eliminar permanentemente la acción <strong>#{accionEliminando.idAccion}</strong> del {accionEliminando.fecha}?
+            </p>
+            <p className="mt-2 text-sm text-red-700">Esta operación no se puede deshacer.</p>
+            <div className="mt-5 flex justify-end gap-2">
+              <button
+                type="button"
+                disabled={procesando}
+                onClick={() => setAccionEliminando(null)}
+                className="rounded bg-gray-500 px-4 py-2 text-white disabled:opacity-50"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                disabled={procesando}
+                onClick={confirmarEliminacion}
+                className="rounded bg-red-700 px-4 py-2 text-white disabled:opacity-50"
+              >
+                {procesando ? "Eliminando..." : "Eliminar"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
 }

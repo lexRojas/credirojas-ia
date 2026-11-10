@@ -7,6 +7,28 @@ import { EstadoSocio } from "@prisma/client";
 
 import { PrismaClientKnownRequestError } from "@prisma/client/runtime/library";
 
+const MONTO_ACCION_VARIABLE_ID = 4;
+const DATE_ONLY_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
+
+export interface SocioActivoAcciones {
+  idSocio: number;
+  cedula: string;
+  nombre: string;
+}
+
+export interface ActualizarAccionInput {
+  idAccion: number;
+  periodo: string;
+  mes: string;
+  fecha: string;
+  cantidadAcciones: number;
+}
+
+export interface AccionMutationResult {
+  success: boolean;
+  message: string;
+}
+
 // Crear una instancia de PrismaClient
 
 type formTypeAccion = {
@@ -90,6 +112,143 @@ export const getAccionesBySocioId = async (
     });
   } catch {
     return [];
+  }
+};
+
+export const getSociosActivosAcciones = async (): Promise<SocioActivoAcciones[]> => {
+  return prisma.socio.findMany({
+    where: { estadoSocio: EstadoSocio.ACTIVO },
+    select: {
+      idSocio: true,
+      cedula: true,
+      nombre: true,
+    },
+    orderBy: { nombre: "asc" },
+  });
+};
+
+export const getAccionesMantenimiento = async (socioId: number): Promise<Accion[]> => {
+  if (!Number.isInteger(socioId) || socioId <= 0) return [];
+
+  return prisma.accion.findMany({
+    where: {
+      socioId,
+      socio: { estadoSocio: EstadoSocio.ACTIVO },
+    },
+    orderBy: [
+      { fecha: "desc" },
+      { idAccion: "desc" },
+    ],
+  });
+};
+
+export const actualizarAccion = async (
+  input: ActualizarAccionInput
+): Promise<AccionMutationResult> => {
+  const { idAccion, periodo, mes, fecha, cantidadAcciones } = input;
+
+  if (!Number.isInteger(idAccion) || idAccion <= 0) {
+    return { success: false, message: "La acción seleccionada no es válida." };
+  }
+
+  if (!DATE_ONLY_PATTERN.test(fecha)) {
+    return { success: false, message: "La fecha debe tener formato YYYY-MM-DD." };
+  }
+
+  const [anioFecha, mesFecha, diaFecha] = fecha.split("-").map(Number);
+  const fechaValida = new Date(anioFecha, mesFecha - 1, diaFecha);
+  if (
+    fechaValida.getFullYear() !== anioFecha ||
+    fechaValida.getMonth() + 1 !== mesFecha ||
+    fechaValida.getDate() !== diaFecha
+  ) {
+    return { success: false, message: "La fecha indicada no es válida." };
+  }
+
+  if (periodo !== String(anioFecha)) {
+    return { success: false, message: "El periodo debe coincidir con el año de la fecha." };
+  }
+
+  if (mes !== String(mesFecha)) {
+    return { success: false, message: "El mes debe coincidir con el mes de la fecha." };
+  }
+
+  if (!Number.isInteger(cantidadAcciones) || cantidadAcciones <= 0) {
+    return { success: false, message: "La cantidad de acciones debe ser un entero mayor que cero." };
+  }
+
+  try {
+    const [accion, variableMonto, fechaCalendario] = await Promise.all([
+      prisma.accion.findFirst({
+        where: {
+          idAccion,
+          socio: { estadoSocio: EstadoSocio.ACTIVO },
+        },
+        select: { idAccion: true },
+      }),
+      prisma.variables.findUnique({
+        where: { idVariable: MONTO_ACCION_VARIABLE_ID },
+        select: { valor: true },
+      }),
+      prisma.calendario.findUnique({
+        where: { fecha },
+        select: { fecha: true },
+      }),
+    ]);
+
+    if (!accion) {
+      return { success: false, message: "La acción ya no existe o el socio no está activo." };
+    }
+
+    if (!variableMonto || !Number.isFinite(variableMonto.valor) || variableMonto.valor <= 0) {
+      return { success: false, message: "El valor vigente de una acción no está configurado correctamente." };
+    }
+
+    if (!fechaCalendario) {
+      return { success: false, message: "La fecha indicada no existe en el calendario de pagos." };
+    }
+
+    await prisma.accion.update({
+      where: { idAccion },
+      data: {
+        periodo,
+        mes,
+        fecha,
+        cantidadAcciones,
+        monto_colones: cantidadAcciones * variableMonto.valor,
+      },
+    });
+
+    return { success: true, message: "Acción actualizada correctamente." };
+  } catch (error) {
+    console.error("Error al actualizar la acción:", error);
+    return { success: false, message: "No se pudo actualizar la acción." };
+  }
+};
+
+export const eliminarAccion = async (idAccion: number): Promise<AccionMutationResult> => {
+  if (!Number.isInteger(idAccion) || idAccion <= 0) {
+    return { success: false, message: "La acción seleccionada no es válida." };
+  }
+
+  try {
+    const accion = await prisma.accion.findFirst({
+      where: {
+        idAccion,
+        socio: { estadoSocio: EstadoSocio.ACTIVO },
+      },
+      select: { idAccion: true },
+    });
+
+    if (!accion) {
+      return { success: false, message: "La acción ya no existe o el socio no está activo." };
+    }
+
+    await prisma.accion.delete({ where: { idAccion } });
+    return { success: true, message: "Acción eliminada correctamente." };
+  } catch (error) {
+    console.error("Error al eliminar la acción:", error);
+    return { success: false, message: "No se pudo eliminar la acción." };
   }
 };
 

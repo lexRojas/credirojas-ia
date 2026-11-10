@@ -104,7 +104,7 @@ const Sidebar = ({
             icon: <MdOutlineSavings className="w-6 h-6" />,
             subItems: [
                 { name: "Asignar Acciones", href: "/home/socios/acciones" },
-                { name: "Ver Acciones x Socio", href: "/home/socios/estado_acciones" }]
+                { name: "Mantenimiento de Acciones", href: "/home/socios/estado_acciones" }]
         },
         {
             name: "Prestamos",
